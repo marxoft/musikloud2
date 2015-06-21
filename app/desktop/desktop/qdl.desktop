@@ -1,0 +1,11 @@
+[Desktop Entry]
+Encoding=UTF-8
+Version=1.0
+Type=Application
+Terminal=false
+Name=MusiKloud2
+GenericName=SoundCloud client
+Comment=SoundCloud client and music player
+Exec=/opt/musikloud2/bin/musikloud2
+Icon=/usr/share/icons/hicolor/64x64/apps/musikloud2.png
+Categories=Multimedia

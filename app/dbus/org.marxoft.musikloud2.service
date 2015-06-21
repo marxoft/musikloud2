@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=org.marxoft.musikloud2
+Exec=/opt/musikloud2/bin/musikloud2

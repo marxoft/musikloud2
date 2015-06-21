@@ -1,0 +1,13 @@
+Source: musikloud2-mixcloud
+Section: user/multimedia
+Priority: optional
+Maintainer: Stuart Howarth <showarth@marxoft.co.uk>
+Homepage: http://marxoft.co.uk/projects/musikloud2
+Build-Depends: debhelper (>= 5)
+Standards-Version: 3.7.3
+
+Package: musikloud2-mixcloud
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, python-simplejson
+Description: A plugin for MusiKloud2 providing access to content from Mixcloud
+XB-Maemo-Display-Name: MusiKloud2-Mixcloud

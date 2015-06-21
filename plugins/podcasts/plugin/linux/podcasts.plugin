@@ -1,0 +1,5 @@
+<plugin name="Podcasts" settings="podcasts/podcasts.settings" exec="/opt/musikloud2/plugins/podcasts/musikloud2-podcasts">
+    <resources>
+        <resource method="list" name="Latest episodes" type="track" />
+    </resources>
+</plugin>
