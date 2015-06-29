@@ -87,11 +87,11 @@ QString Utils::formatLargeNumber(qint64 num) {
 }
 
 QString Utils::formatMSecs(qint64 ms) {    
-    return ms > 0 ? formatSecs(ms / 1000) : QString("00:00");
+    return ms > 0 ? formatSecs(ms / 1000) : QString("--:--");
 }
 
 QString Utils::formatSecs(qint64 s) {    
-    return s > 0 ? QString("%1:%2").arg(s / 60, 2, 10, QChar('0')).arg(s % 60, 2, 10, QChar('0')) : QString("00:00");
+    return s > 0 ? QString("%1:%2").arg(s / 60, 2, 10, QChar('0')).arg(s % 60, 2, 10, QChar('0')) : QString("--:--");
 }
 
 bool Utils::isLocalFile(const QUrl &url) {

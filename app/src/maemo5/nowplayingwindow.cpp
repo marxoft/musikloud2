@@ -33,6 +33,10 @@
 #include <QDebug>
 #endif
 
+static const QString TOOL_BUTTON_STYLE_SHEET("QToolButton { background: transparent; image: url(%1); } \
+                                              QToolButton:pressed { image: url(%2); } \
+                                              QToolButton:checked { image: url(%3); }");
+
 NowPlayingWindow::NowPlayingWindow(StackedWindow *parent) :
     StackedWindow(parent),
     m_thumbnail(new Image(this)),
@@ -89,48 +93,41 @@ NowPlayingWindow::NowPlayingWindow(StackedWindow *parent) :
     
     m_contextMenu->addAction(m_removeAction);
     m_contextMenu->addAction(m_clearAction);
-    
-    const QString toolButtonStyleSheet("QToolButton { background: transparent; image: url(%1); } \
-                                        QToolButton:pressed { image: url(%2); } \
-                                        QToolButton:checked { image: url(%3); }");
-    
+        
     m_previousButton->setFixedSize(64, 64);
     m_previousButton->setIconSize(QSize(64, 64));
     m_previousButton->setShortcut(Qt::Key_Left);
-    m_previousButton->setStyleSheet(toolButtonStyleSheet.arg(QString("/etc/hildon/theme/mediaplayer/Back.png"))
-                                                        .arg(QString("/etc/hildon/theme/mediaplayer/BackPressed.png"))
-                                                        .arg(QString("/etc/hildon/theme/mediaplayer/Back.png")));
+    m_previousButton->setStyleSheet(TOOL_BUTTON_STYLE_SHEET.arg(QString("/etc/hildon/theme/mediaplayer/Back.png"))
+                                                           .arg(QString("/etc/hildon/theme/mediaplayer/BackPressed.png"))
+                                                           .arg(QString("/etc/hildon/theme/mediaplayer/Back.png")));
     
     m_playButton->setFixedSize(64, 64);
     m_playButton->setIconSize(QSize(64, 64));
     m_playButton->setCheckable(true);
     m_playButton->setShortcut(Qt::Key_Space);
-    m_playButton->setStyleSheet(toolButtonStyleSheet.arg(QString("/etc/hildon/theme/mediaplayer/Play.png"))
-                                                    .arg(QString("/etc/hildon/theme/mediaplayer/Play.png"))
-                                                    .arg(QString("/etc/hildon/theme/mediaplayer/Pause.png")));
     
     m_nextButton->setFixedSize(64, 64);
     m_nextButton->setIconSize(QSize(64, 64));
     m_nextButton->setShortcut(Qt::Key_Right);
-    m_nextButton->setStyleSheet(toolButtonStyleSheet.arg(QString("/etc/hildon/theme/mediaplayer/Forward.png"))
-                                                    .arg(QString("/etc/hildon/theme/mediaplayer/ForwardPressed.png"))
-                                                    .arg(QString("/etc/hildon/theme/mediaplayer/Forward.png")));
+    m_nextButton->setStyleSheet(TOOL_BUTTON_STYLE_SHEET.arg(QString("/etc/hildon/theme/mediaplayer/Forward.png"))
+                                                       .arg(QString("/etc/hildon/theme/mediaplayer/ForwardPressed.png"))
+                                                       .arg(QString("/etc/hildon/theme/mediaplayer/Forward.png")));
     
     m_shuffleButton->setFixedSize(64, 64);
     m_shuffleButton->setIconSize(QSize(64, 64));
     m_shuffleButton->setCheckable(true);
     m_shuffleButton->setShortcut(Qt::Key_S);
-    m_shuffleButton->setStyleSheet(toolButtonStyleSheet.arg(QString("/etc/hildon/theme/mediaplayer/Shuffle.png"))
-                                                       .arg(QString("/etc/hildon/theme/mediaplayer/ShufflePressed.png"))
-                                                       .arg(QString("/etc/hildon/theme/mediaplayer/ShufflePressed.png")));
+    m_shuffleButton->setStyleSheet(TOOL_BUTTON_STYLE_SHEET.arg(QString("/etc/hildon/theme/mediaplayer/Shuffle.png"))
+                                                          .arg(QString("/etc/hildon/theme/mediaplayer/ShufflePressed.png"))
+                                                          .arg(QString("/etc/hildon/theme/mediaplayer/ShufflePressed.png")));
     
     m_repeatButton->setFixedSize(64, 64);
     m_repeatButton->setIconSize(QSize(64, 64));
     m_repeatButton->setCheckable(true);
     m_repeatButton->setShortcut(Qt::Key_R);
-    m_repeatButton->setStyleSheet(toolButtonStyleSheet.arg(QString("/etc/hildon/theme/mediaplayer/Repeat.png"))
-                                                      .arg(QString("/etc/hildon/theme/mediaplayer/RepeatPressed.png"))
-                                                      .arg(QString("/etc/hildon/theme/mediaplayer/RepeatPressed.png")));
+    m_repeatButton->setStyleSheet(TOOL_BUTTON_STYLE_SHEET.arg(QString("/etc/hildon/theme/mediaplayer/Repeat.png"))
+                                                         .arg(QString("/etc/hildon/theme/mediaplayer/RepeatPressed.png"))
+                                                         .arg(QString("/etc/hildon/theme/mediaplayer/RepeatPressed.png")));
         
     m_grid->addWidget(m_trackLabel, 0, 0, 1, 3);
     m_grid->addWidget(m_titleLabel, 1, 0, 1, 3);
@@ -294,10 +291,18 @@ void NowPlayingWindow::onPositionChanged(qint64 position) {
 void NowPlayingWindow::onSeekableChanged(bool isSeekable) {
     if (isSeekable) {
         m_positionSlider->setEnabled(true);
+        
+        m_playButton->setStyleSheet(TOOL_BUTTON_STYLE_SHEET.arg(QString("/etc/hildon/theme/mediaplayer/Play.png"))
+                                                           .arg(QString("/etc/hildon/theme/mediaplayer/Play.png"))
+                                                           .arg(QString("/etc/hildon/theme/mediaplayer/Pause.png")));
     }
     else {
         m_positionSlider->setEnabled(false);
         m_positionSlider->setValue(0);
+        
+        m_playButton->setStyleSheet(TOOL_BUTTON_STYLE_SHEET.arg(QString("/etc/hildon/theme/mediaplayer/Play.png"))
+                                                           .arg(QString("/etc/hildon/theme/mediaplayer/Play.png"))
+                                                           .arg(QString("/etc/hildon/theme/mediaplayer/Stop.png")));
     }
 }
 
@@ -322,11 +327,11 @@ void NowPlayingWindow::onStatusChanged(AudioPlayer::Status status) {
         return;
     case AudioPlayer::Playing:
         m_playButton->setChecked(true);
-        m_positionSlider->setEnabled(true);
+        m_positionSlider->setEnabled(AudioPlayer::instance()->isSeekable());
         break;
     default:
         m_playButton->setChecked(false);
-        m_positionSlider->setEnabled(true);
+        m_positionSlider->setEnabled(AudioPlayer::instance()->isSeekable());
         break;
     }
     

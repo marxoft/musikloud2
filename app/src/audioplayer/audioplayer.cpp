@@ -46,12 +46,12 @@ AudioPlayer::AudioPlayer(QObject *parent) :
     }
     
     connect(m_player, SIGNAL(bufferStatusChanged(int)), this, SLOT(onBufferStatusChanged(int)));
-    connect(m_player, SIGNAL(durationChanged(qint64)), this, SIGNAL(durationChanged(qint64)));
+    connect(m_player, SIGNAL(durationChanged(qint64)), this, SLOT(onDurationChanged(qint64)));
     connect(m_player, SIGNAL(error(QMediaPlayer::Error)), this, SLOT(onError(QMediaPlayer::Error)));
     connect(m_player, SIGNAL(mediaStatusChanged(QMediaPlayer::MediaStatus)),
             this, SLOT(onMediaStatusChanged(QMediaPlayer::MediaStatus)));
     connect(m_player, SIGNAL(positionChanged(qint64)), this, SIGNAL(positionChanged(qint64)));
-    connect(m_player, SIGNAL(seekableChanged(bool)), this, SIGNAL(seekableChanged(bool)));
+    connect(m_player, SIGNAL(seekableChanged(bool)), this, SLOT(onSeekableChanged()));
     connect(m_player, SIGNAL(stateChanged(QMediaPlayer::State)), this, SLOT(onStateChanged(QMediaPlayer::State)));
     connect(m_queue, SIGNAL(countChanged(int)), this, SIGNAL(queueCountChanged(int)));
 }
@@ -130,7 +130,7 @@ bool AudioPlayer::isPaused() const {
 }
 
 void AudioPlayer::setPaused(bool p) {
-    if (p) {
+    if ((p) && (isSeekable())) {
         pause();
     }
     else if (isPaused()) {
@@ -147,7 +147,12 @@ void AudioPlayer::setPlaying(bool p) {
         play();
     }
     else if (isPlaying()) {
-        pause();
+        if (isSeekable()) {
+            pause();
+        }
+        else {
+            stop();
+        }
     }
 }
 
@@ -471,6 +476,11 @@ void AudioPlayer::onBufferStatusChanged(int b) {
     emit bufferStatusChanged(b);
 }
 
+void AudioPlayer::onDurationChanged(qint64 d) {
+    emit durationChanged(d);
+    emit seekableChanged(isSeekable());
+}
+
 void AudioPlayer::onError(QMediaPlayer::Error e) {
     if (e != QMediaPlayer::NoError) {
         setErrorString(m_player->errorString());
@@ -541,6 +551,10 @@ void AudioPlayer::onPluginModelStatusChanged(ResourcesRequest::Status s) {
     default:
         break;
     }
+}
+
+void AudioPlayer::onSeekableChanged() {
+    emit seekableChanged(isSeekable());
 }
 
 void AudioPlayer::onSoundCloudModelStatusChanged(QSoundCloud::StreamsRequest::Status s) {

@@ -145,9 +145,11 @@ private Q_SLOTS:
     void shuffleTracks();
     
     void onBufferStatusChanged(int b);
+    void onDurationChanged(qint64 d);
     void onError(QMediaPlayer::Error e);
     void onMediaStatusChanged(QMediaPlayer::MediaStatus m);
     void onPluginModelStatusChanged(ResourcesRequest::Status s);
+    void onSeekableChanged();
     void onSoundCloudModelStatusChanged(QSoundCloud::StreamsRequest::Status s);
     void onStateChanged(QMediaPlayer::State s);
 
