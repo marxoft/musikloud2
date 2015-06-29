@@ -30,7 +30,8 @@ def check_url(url):
     try:
         request = urllib2.Request(url)
         request.get_method = lambda : 'HEAD'
-        return urllib2.urlopen(request).getcode() == 200
+        urllib2.urlopen(request)
+        return True
     except:
         return False
 
@@ -51,34 +52,37 @@ def list_tracks(url):
         raise ResourceError('{"error": "No URL specified"}')
         
     try:
-        response = json.loads(get_page(url))
+        response = json.loads(get_page(url.replace('www.mixcloud.com', 'api.mixcloud.com')))
     except:
         raise ResourceError('{"error": "Unable to parse response from %s"}' % url)
     
     result = {}
     tracks = []
     
-    for item in response['data']:
-        try:
-            track = {}
-            track['artist'] = item['user']['name']
-            track['artistId'] = API_URL + item['user']['key']
-            track['date'] = format_date(item['created_time'])
-            track['duration'] = item['audio_length'] * 1000
-        
+    try:
+        for item in response['data']:
             try:
-                track['genre'] = item['tags'][0]['name']
-            except IndexError:
-                pass
+                track = {}
+                track['artist'] = item['user']['name']
+                track['artistId'] = API_URL + item['user']['key']
+                track['date'] = format_date(item['created_time'])
+                track['duration'] = item['audio_length'] * 1000
         
-            track['id'] = item['url']
-            track['largeThumbnailUrl'] = item['pictures']['large']
-            track['thumbnailUrl'] = item['pictures']['medium']
-            track['title'] = item['name']
-            track['url'] = item['url']
-            tracks.append(track)
-        except:
-            pass
+                try:
+                    track['genre'] = item['tags'][0]['name']
+                except IndexError:
+                    pass
+        
+                track['id'] = item['url']
+                track['largeThumbnailUrl'] = item['pictures']['large']
+                track['thumbnailUrl'] = item['pictures']['medium']
+                track['title'] = item['name']
+                track['url'] = item['url']
+                tracks.append(track)
+            except:
+                pass
+    except KeyError:
+        pass
     
     result['items'] = tracks
     
@@ -127,7 +131,7 @@ def list_artists(url):
         raise ResourceError('{"error": "No URL specified"}')
         
     try:
-        response = json.loads(get_page(url))
+        response = json.loads(get_page(url.replace('www.mixcloud.com', 'api.mixcloud.com')))
     except:
         raise ResourceError('{"error": "Unable to parse response from %s"}' % url)
     
@@ -181,7 +185,7 @@ def list_categories(url):
         raise ResourceError('{"error": "No URL specified"}')
         
     try:
-        response = json.loads(get_page(url))
+        response = json.loads(get_page(url.replace('www.mixcloud.com', 'api.mixcloud.com')))
     except:
         raise ResourceError('{"error": "Unable to parse response from %s"}' % url)
     
@@ -210,7 +214,7 @@ def list_streams(url):
     if not url:
         raise ResourceError('{"error": "No URL specified"}')
     
-    page = get_page(url)
+    page = get_page(url.replace('api.mixcloud.com', 'www.mixcloud.com'))
     result = {}
     streams = []
     
@@ -221,7 +225,7 @@ def list_streams(url):
         if check_url(stream_url):
             stream = {}
             stream['description'] = 'MP3'
-            stream['extension'] = 'mp3'
+            stream['ext'] = 'mp3'
             stream['id'] = '0'
             stream['url'] = stream_url
             streams.append(stream)
@@ -231,7 +235,7 @@ def list_streams(url):
             if check_url(stream_url):
                 stream = {}
                 stream['description'] = 'M4A'
-                stream['extension'] = 'm4a'
+                stream['ext'] = 'm4a'
                 stream['id'] = '0'
                 stream['url'] = stream_url
                 streams.append(stream)
