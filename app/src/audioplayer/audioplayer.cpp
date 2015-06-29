@@ -176,7 +176,7 @@ int AudioPlayer::queueCount() const {
 }
 
 bool AudioPlayer::isSeekable() const {
-    return m_player->isSeekable();
+    return (m_player->isSeekable()) && (m_player->duration() > 0);
 }
 
 bool AudioPlayer::repeatEnabled() const {
