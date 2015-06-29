@@ -192,17 +192,6 @@ void Settings::setDefaultSearchType(const QString &service, const QString &type)
     }
 }
 
-QString Settings::defaultViewMode() const {
-    return value("Content/defaultViewMode", "list").toString();
-}
-
-void Settings::setDefaultViewMode(const QString &mode) {
-    if (mode != defaultViewMode()) {
-        setValue("Content/defaultViewMode", mode);
-        emit defaultViewModeChanged();
-    }
-}
-
 QString Settings::downloadPath() const {
     QString path = value("Transfers/downloadPath", DOWNLOAD_PATH).toString();
 
@@ -221,17 +210,6 @@ void Settings::setDownloadPath(const QString &path) {
     if (path != downloadPath()) {
         setValue("Transfers/downloadPath", path);
         emit downloadPathChanged();
-    }
-}
-
-QString Settings::locale() const {
-    return value("Content/locale", QLocale().name()).toString();
-}
-
-void Settings::setLocale(const QString &name) {
-    if (name != locale()) {
-        setValue("Content/locale", name);
-        emit localeChanged();
     }
 }
 
@@ -327,17 +305,6 @@ void Settings::setNetworkProxyUsername(const QString &username) {
     if (username != networkProxyUsername()) {
         setValue("Network/networkProxyUsername", username);
         emit networkProxyChanged();
-    }
-}
-
-bool Settings::safeSearchEnabled() const {
-    return value("Search/safeSearchEnabled", false).toBool();
-}
-
-void Settings::setSafeSearchEnabled(bool enabled) {
-    if (enabled != safeSearchEnabled()) {
-        setValue("Search/safeSearchEnabled", enabled);
-        emit safeSearchEnabledChanged();
     }
 }
 

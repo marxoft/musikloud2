@@ -15,13 +15,28 @@
  */
 
 #include "utils.h"
-#include <QString>
 #include <QRegExp>
-#include <QUrl>
+#include <QDir>
 
 Utils::Utils(QObject *parent) :
     QObject(parent)
 {
+}
+
+QUrl Utils::findThumbnailUrl(const QUrl &url) {
+    if (!isLocalFile(url)) {
+        return QUrl();
+    }
+        
+    QDir dir(url.path().left(url.path().lastIndexOf('/')));
+    
+    foreach (QString fileName, QStringList() << "cover.jpg" << "folder.jpg" << "front.jpg") {
+        if (dir.exists(fileName)) {
+            return QUrl::fromLocalFile(dir.absoluteFilePath(fileName));
+        }
+    }
+    
+    return QUrl();
 }
 
 QString Utils::formatBytes(qint64 bytes) {

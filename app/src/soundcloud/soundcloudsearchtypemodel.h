@@ -30,7 +30,7 @@ public:
     {
         append(tr("Tracks"), SearchResource(tr("Tracks"), Resources::TRACK, ""));
         append(tr("Sets"), SearchResource(tr("Sets"), Resources::PLAYLIST, ""));
-        append(tr("Users"), SearchResource(tr("Users"), Resources::ARTIST, ""));
+        append(tr("Artists"), SearchResource(tr("Artists"), Resources::ARTIST, ""));
     }
 };
 

@@ -51,7 +51,7 @@ ItemDelegate {
         
         Image {
             anchors.fill: parent
-            source: view.model.data(styleData.row, "thumbnailUrl")
+            source: view.model.data(styleData.row, "originThumbnailUrl")
             smooth: true
         }
     }

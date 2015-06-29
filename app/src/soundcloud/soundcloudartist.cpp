@@ -15,8 +15,9 @@
  */
 
 #include "soundcloudartist.h"
-#include "soundcloud.h"
+#include "definitions.h"
 #include "resources.h"
+#include "soundcloud.h"
 #ifdef MUSIKLOUD_DEBUG
 #include <QDebug>
 #endif
@@ -186,7 +187,7 @@ void SoundCloudArtist::loadArtist(const QString &id) {
         m_request->get("/resolve", filters);
     }
     else {
-        m_request->get(id.isEmpty() ? "/me" : "/artists/" + id);
+        m_request->get(id.isEmpty() ? "/me" : "/users/" + id);
     }
     
     connect(m_request, SIGNAL(finished()), this, SLOT(onArtistRequestFinished()));
@@ -194,14 +195,16 @@ void SoundCloudArtist::loadArtist(const QString &id) {
 }
 
 void SoundCloudArtist::loadArtist(const QVariantMap &artist) {
+    const QString thumbnail = artist.value("avatar_url").toString();
+    
     setDescription(artist.value("description").toString());
     setFollowersCount(artist.value("followers_count").toLongLong());
     setId(artist.value("id").toString());
-    setLargeThumbnailUrl(artist.value("avatar_url").toString());
-    setThumbnailUrl(artist.value("avatar_url").toString());
+    setLargeThumbnailUrl(QString("%1-t%2x%2.jpg").arg(thumbnail.left(thumbnail.lastIndexOf('-'))).arg(LARGE_THUMBNAIL_SIZE));
     setName(artist.value("username").toString());
     setOnline(artist.value("online").toBool());
     setPlaylistCount(artist.value("playlist_count").toLongLong());
+    setThumbnailUrl(thumbnail);
     setTrackCount(artist.value("track_count").toLongLong());
     setWebsiteTitle(artist.value("website_title").toString());
     setWebsiteUrl(artist.value("website_url").toString());

@@ -78,7 +78,7 @@ void Transfers::addDownloadTransfer(const QString &service, const QString &resou
     transfer->setId(QByteArray(QByteArray::number(QDateTime::currentMSecsSinceEpoch()) + "#"
                     + resourceId.toUtf8()).toBase64());
     transfer->setDownloadPath(Settings::instance()->downloadPath() + ".incomplete/" + transfer->id());
-    transfer->setFileName(title + ".mp3");
+    transfer->setFileName(title);
     transfer->setCategory(category);
     transfer->setResourceId(resourceId);
     transfer->setStreamId(streamId);

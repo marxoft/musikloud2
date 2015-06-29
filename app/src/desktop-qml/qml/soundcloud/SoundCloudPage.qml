@@ -153,22 +153,18 @@ Page {
                 pageStack.push({item: Qt.resolvedUrl("SoundCloudSearchLabel.qml"), immediate: true});
                 break;
             case 2:
-                pageStack.push({item: Qt.resolvedUrl("SoundCloudActivitiesPage.qml"), properties: {title: qsTr("Stream")},
-                                immediate: true}).model.get("/me/activities", {limit: MAX_RESULTS});
-                break;
-            case 3:
                 pageStack.push({item: Qt.resolvedUrl("SoundCloudTracksPage.qml"), properties: {title: qsTr("Tracks")},
                                 immediate: true}).model.get("/me/tracks", {limit: MAX_RESULTS});
                 break;
-            case 4:
+            case 3:
                 pageStack.push({item: Qt.resolvedUrl("SoundCloudTracksPage.qml"), properties: {title: qsTr("Favourites")},
                                 immediate: true}).model.get("/me/favorites", {limit: MAX_RESULTS});
                 break;
-            case 5:
+            case 4:
                 pageStack.push({item: Qt.resolvedUrl("SoundCloudPlaylistsPage.qml"), properties: {title: qsTr("Sets")},
                                 immediate: true}).model.get("/me/playlists", {limit: MAX_RESULTS});
                 break;
-            case 6:
+            case 5:
                 pageStack.push({item: Qt.resolvedUrl("SoundCloudArtistsPage.qml"), properties: {title: qsTr("Followings")},
                                 immediate: true}).model.get("/me/followings", {limit: MAX_RESULTS});
                 break;

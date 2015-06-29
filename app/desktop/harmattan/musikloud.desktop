@@ -1,0 +1,13 @@
+[Desktop Entry]
+Encoding=UTF-8
+Version=1.0
+Type=Application
+Terminal=false
+Name=MusiKloud
+X-logical-id=musikloud
+X-translation-catalog=musikloud
+Exec=/usr/bin/invoker --type=d -s --splash=/opt/musikloud/resources/splash.png --splash-landscape=/opt/musikloud/resources/splash-landscape.png /opt/musikloud/bin/musikloud
+Icon=/usr/share/icons/hicolor/80x80/apps/musikloud80.png
+MimeType=x-maemo-highlight/soundcloud-url;
+X-Maemo-Service=com.maemo.MusiKloud
+X-Maemo-Method=com.maemo.MusiKloud.displayResource

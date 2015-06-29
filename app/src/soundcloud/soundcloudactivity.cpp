@@ -46,11 +46,12 @@ SoundCloudActivity::SoundCloudActivity(SoundCloudActivity *activity, QObject *pa
     m_typeString(activity->activityTypeString()),
     m_artist(activity->artist()),
     m_artistId(activity->artistId()),
+    m_artistThumbnailUrl(activity->artistThumbnailUrl()),
     m_date(activity->date()),
     m_description(activity->description()),
     m_id(activity->id()),
     m_originId(activity->originId()),
-    m_thumbnailUrl(activity->thumbnailUrl()),
+    m_originThumbnailUrl(activity->originThumbnailUrl()),
     m_title(activity->title())
 {
 }
@@ -115,6 +116,17 @@ void SoundCloudActivity::setArtistId(const QString &i) {
     }
 }
 
+QUrl SoundCloudActivity::artistThumbnailUrl() const {
+    return m_artistThumbnailUrl;
+}
+
+void SoundCloudActivity::setArtistThumbnailUrl(const QUrl &u) {
+    if (u != artistThumbnailUrl()) {
+        m_artistThumbnailUrl = u;
+        emit artistThumbnailUrlChanged();
+    }
+}
+
 QString SoundCloudActivity::date() const {
     return m_date;
 }
@@ -163,14 +175,14 @@ void SoundCloudActivity::setOriginId(const QString &i) {
     }
 }
 
-QUrl SoundCloudActivity::thumbnailUrl() const {
-    return m_thumbnailUrl;
+QUrl SoundCloudActivity::originThumbnailUrl() const {
+    return m_originThumbnailUrl;
 }
 
-void SoundCloudActivity::setThumbnailUrl(const QUrl &u) {
-    if (u != thumbnailUrl()) {
-        m_thumbnailUrl = u;
-        emit thumbnailUrlChanged();
+void SoundCloudActivity::setOriginThumbnailUrl(const QUrl &u) {
+    if (u != originThumbnailUrl()) {
+        m_originThumbnailUrl = u;
+        emit originThumbnailUrlChanged();
     }
 }
 
@@ -201,30 +213,136 @@ void SoundCloudActivity::loadActivity(const QString &id) {
 }
 
 void SoundCloudActivity::loadActivity(const QVariantMap &activity) {
+    setActivityType(activity.value("type").toString());
+    
+    if (activityType() == "comment") {
+        loadCommentActivity(activity);
+    }
+    else if (activityType() == "playlist") {
+        loadPlaylistActivity(activity);
+    }
+    else if (activityType() == "track") {
+        loadTrackActivity(activity);
+    }
+    else if (activityType() == "favoriting") {
+        loadTrackFavouritingActivity(activity);
+    }
+    else if (activityType() == "track-repost") {
+        loadTrackRepostActivity(activity);
+    }
+    else {
+        loadTrackSharingActivity(activity);
+    }
+}
+
+void SoundCloudActivity::loadCommentActivity(const QVariantMap &activity) {
     QVariantMap origin = activity.value("origin").toMap();
+    QVariantMap track = origin.value("track").toMap();
     QVariantMap user = origin.value("user").toMap();
     
-    setActivityType(activity.value("type").toString());
     setArtist(user.value("username").toString());
     setArtistId(user.value("id").toString());
+    setArtistThumbnailUrl(user.value("avatar_url").toString());
     setDate(QDateTime::fromString(activity.value("created_at").toString(),
                                   "yyyy/MM/dd HH:mm:ss +0000").toString("dd MMM yyyy"));
-    setDescription(origin.value("description").toString());
+    setDescription(origin.value("body").toString());
     setId(activity.value("id").toString());
-    setOriginId(origin.value("id").toString());
-    setThumbnailUrl(origin.value("artwork_url").toString());
-    setTitle(origin.value("title").toString());
+    setOriginId(track.value("id").toString());
+    setOriginThumbnailUrl(track.value("artwork_url").toString());
+    setTitle(track.value("title").toString());
+}
+
+void SoundCloudActivity::loadPlaylistActivity(const QVariantMap &activity) {
+    QVariantMap playlist = activity.value("origin").toMap();
+    QVariantMap user = playlist.value("user").toMap();
+    
+    setArtist(user.value("username").toString());
+    setArtistId(user.value("id").toString());
+    setArtistThumbnailUrl(user.value("avatar_url").toString());
+    setDate(QDateTime::fromString(activity.value("created_at").toString(),
+                                  "yyyy/MM/dd HH:mm:ss +0000").toString("dd MMM yyyy"));
+    setDescription(playlist.value("description").toString());
+    setId(activity.value("id").toString());
+    setOriginId(playlist.value("id").toString());
+    setOriginThumbnailUrl(playlist.value("artwork_url").toString());
+    setTitle(playlist.value("title").toString());
+}
+
+void SoundCloudActivity::loadTrackActivity(const QVariantMap &activity) {
+    QVariantMap track = activity.value("origin").toMap();
+    QVariantMap user = track.value("user").toMap();
+    
+    setArtist(user.value("username").toString());
+    setArtistId(user.value("id").toString());
+    setArtistThumbnailUrl(user.value("avatar_url").toString());
+    setDate(QDateTime::fromString(activity.value("created_at").toString(),
+                                  "yyyy/MM/dd HH:mm:ss +0000").toString("dd MMM yyyy"));
+    setDescription(track.value("description").toString());
+    setId(activity.value("id").toString());
+    setOriginId(track.value("id").toString());
+    setOriginThumbnailUrl(track.value("artwork_url").toString());
+    setTitle(track.value("title").toString());
+}
+
+void SoundCloudActivity::loadTrackFavouritingActivity(const QVariantMap &activity) {
+    QVariantMap origin = activity.value("origin").toMap();
+    QVariantMap track = origin.value("track").toMap();
+    QVariantMap user = origin.value("user").toMap();
+    
+    setArtist(user.value("username").toString());
+    setArtistId(user.value("id").toString());
+    setArtistThumbnailUrl(user.value("avatar_url").toString());
+    setDate(QDateTime::fromString(activity.value("created_at").toString(),
+                                  "yyyy/MM/dd HH:mm:ss +0000").toString("dd MMM yyyy"));
+    setDescription(QString("%1 %2").arg(tr("Favourited by")).arg(artist()));
+    setId(activity.value("id").toString());
+    setOriginId(track.value("id").toString());
+    setOriginThumbnailUrl(track.value("artwork_url").toString());
+    setTitle(track.value("title").toString());
+}
+
+void SoundCloudActivity::loadTrackRepostActivity(const QVariantMap &activity) {
+    QVariantMap track = activity.value("origin").toMap();
+    QVariantMap user = track.value("user").toMap();
+    
+    setArtist(user.value("username").toString());
+    setArtistId(user.value("id").toString());
+    setArtistThumbnailUrl(user.value("avatar_url").toString());
+    setDate(QDateTime::fromString(activity.value("created_at").toString(),
+                                  "yyyy/MM/dd HH:mm:ss +0000").toString("dd MMM yyyy"));
+    setDescription(track.value("description").toString());
+    setId(activity.value("id").toString());
+    setOriginId(track.value("id").toString());
+    setOriginThumbnailUrl(track.value("artwork_url").toString());
+    setTitle(track.value("title").toString());
+}
+
+void SoundCloudActivity::loadTrackSharingActivity(const QVariantMap &activity) {
+    QVariantMap track = activity.value("origin").toMap().value("track").toMap();
+    QVariantMap user = track.value("user").toMap();
+    
+    setArtist(user.value("username").toString());
+    setArtistId(user.value("id").toString());
+    setArtistThumbnailUrl(user.value("avatar_url").toString());
+    setDate(QDateTime::fromString(activity.value("created_at").toString(),
+                                  "yyyy/MM/dd HH:mm:ss +0000").toString("dd MMM yyyy"));
+    setDescription(track.value("description").toString());
+    setId(activity.value("id").toString());
+    setOriginId(track.value("id").toString());
+    setOriginThumbnailUrl(track.value("artwork_url").toString());
+    setTitle(track.value("title").toString());
 }
 
 void SoundCloudActivity::loadActivity(SoundCloudActivity *activity) {
     setActivityType(activity->activityType());
     setArtist(activity->artist());
     setArtistId(activity->artistId());
+    setArtistThumbnailUrl(activity->artistThumbnailUrl());
     setDate(activity->date());
     setDescription(activity->description());
     setId(activity->id());
     setOriginId(activity->originId());
-    setThumbnailUrl(activity->thumbnailUrl());
+    setOriginThumbnailUrl(activity->originThumbnailUrl());
     setTitle(activity->title());
 }
 

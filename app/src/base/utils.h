@@ -18,9 +18,7 @@
 #define UTILS_H
 
 #include <QObject>
-
-class QString;
-class QUrl;
+#include <QUrl>
 
 class Utils : public QObject
 {
@@ -28,6 +26,8 @@ class Utils : public QObject
     
 public:
     explicit Utils(QObject *parent = 0);
+    
+    Q_INVOKABLE static QUrl findThumbnailUrl(const QUrl &url);
     
     Q_INVOKABLE static QString formatBytes(qint64 bytes);
     

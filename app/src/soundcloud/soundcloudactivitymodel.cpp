@@ -134,7 +134,8 @@ void SoundCloudActivityModel::get(const QString &resourcePath, const QVariantMap
     clear();
     m_resourcePath = resourcePath;
     m_filters = filters;
-    m_request->get(resourcePath, filters);
+    m_filters["linked_partitioning"] = true;
+    m_request->get(m_resourcePath, m_filters);
     emit statusChanged(status());
 }
 
@@ -189,7 +190,7 @@ void SoundCloudActivityModel::onRequestFinished() {
         QVariantMap result = m_request->result().toMap();
         
         if (!result.isEmpty()) {
-            m_nextHref = result.value("future_href").toString().section('/', -1);
+            m_nextHref = result.value("next_href").toString().section('/', -1);
             QVariantList list = result.value("collection").toList();
 
             beginInsertRows(QModelIndex(), m_items.size(), m_items.size() + list.size() - 1);

@@ -41,9 +41,7 @@ class Settings : public QObject
     Q_PROPERTY(bool clipboardMonitorEnabled READ clipboardMonitorEnabled WRITE setClipboardMonitorEnabled
                NOTIFY clipboardMonitorEnabledChanged)
     Q_PROPERTY(QString currentService READ currentService WRITE setCurrentService NOTIFY currentServiceChanged)
-    Q_PROPERTY(QString defaultViewMode READ defaultViewMode WRITE setDefaultViewMode NOTIFY defaultViewModeChanged)
     Q_PROPERTY(QString downloadPath READ downloadPath WRITE setDownloadPath NOTIFY downloadPathChanged)
-    Q_PROPERTY(QString locale READ locale WRITE setLocale NOTIFY localeChanged)
     Q_PROPERTY(int maximumConcurrentTransfers READ maximumConcurrentTransfers WRITE setMaximumConcurrentTransfers
                NOTIFY maximumConcurrentTransfersChanged)
     Q_PROPERTY(bool networkProxyEnabled READ networkProxyEnabled WRITE setNetworkProxyEnabled
@@ -55,7 +53,6 @@ class Settings : public QObject
     Q_PROPERTY(int networkProxyType READ networkProxyType WRITE setNetworkProxyType NOTIFY networkProxyChanged)
     Q_PROPERTY(QString networkProxyUsername READ networkProxyUsername WRITE setNetworkProxyUsername
                NOTIFY networkProxyChanged)
-    Q_PROPERTY(bool safeSearchEnabled READ safeSearchEnabled WRITE setSafeSearchEnabled NOTIFY safeSearchEnabledChanged)
     Q_PROPERTY(int screenOrientation READ screenOrientation WRITE setScreenOrientation NOTIFY screenOrientationChanged)
     Q_PROPERTY(QStringList searchHistory READ searchHistory WRITE setSearchHistory NOTIFY searchHistoryChanged)
     Q_PROPERTY(bool startTransfersAutomatically READ startTransfersAutomatically WRITE setStartTransfersAutomatically
@@ -86,14 +83,10 @@ public:
     Q_INVOKABLE QString defaultPlaybackFormat(const QString &service) const;
     
     Q_INVOKABLE QString defaultSearchType(const QString &service) const;
-    
-    QString defaultViewMode() const;
-    
+        
     QString downloadPath() const;
     Q_INVOKABLE QString downloadPath(const QString &category) const;
-    
-    QString locale() const;
-        
+            
     int maximumConcurrentTransfers() const;
     
     bool networkProxyEnabled() const;
@@ -102,9 +95,7 @@ public:
     int networkProxyPort() const;
     int networkProxyType() const;
     QString networkProxyUsername() const;
-    
-    bool safeSearchEnabled() const;
-    
+        
     int screenOrientation() const;
     
     QStringList searchHistory() const;
@@ -131,13 +122,9 @@ public Q_SLOTS:
     void setDefaultPlaybackFormat(const QString &service, const QString &format);
     
     void setDefaultSearchType(const QString &service, const QString &type);
-    
-    void setDefaultViewMode(const QString &mode);
-    
+        
     void setDownloadPath(const QString &path);
-    
-    void setLocale(const QString &name);
-    
+        
     void setMaximumConcurrentTransfers(int maximum);
     
     void setNetworkProxy();
@@ -147,9 +134,7 @@ public Q_SLOTS:
     void setNetworkProxyPort(int port);
     void setNetworkProxyType(int type);
     void setNetworkProxyUsername(const QString &username);
-    
-    void setSafeSearchEnabled(bool enabled);
-    
+        
     void setScreenOrientation(int orientation);
     
     void addSearch(const QString &query);
@@ -170,14 +155,11 @@ Q_SIGNALS:
     void currentServiceChanged();
     void defaultSearchOrderChanged();
     void defaultSearchTypeChanged();
-    void defaultViewModeChanged();
     void downloadFormatsChanged();
     void downloadPathChanged();
-    void localeChanged();
     void maximumConcurrentTransfersChanged();
     void networkProxyChanged();
     void playbackFormatsChanged();
-    void safeSearchEnabledChanged();
     void screenOrientationChanged();
     void searchHistoryChanged();
     void startTransfersAutomaticallyChanged();

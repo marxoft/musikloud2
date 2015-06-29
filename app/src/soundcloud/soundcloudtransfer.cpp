@@ -48,6 +48,12 @@ void SoundCloudTransfer::onStreamsRequestFinished() {
             QVariantMap stream = v.toMap();
         
             if (stream.value("id") == streamId()) {
+                QString ext = stream.value("ext").toString();
+                
+                if (!ext.isEmpty()) {
+                    setFileExtension(ext);
+                }
+                
                 startDownload(stream.value("url").toString());
                 return;
             }

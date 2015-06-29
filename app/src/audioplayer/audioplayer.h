@@ -32,8 +32,8 @@ class AudioPlayer : public QObject
     Q_PROPERTY(qint64 duration READ duration NOTIFY durationChanged)
     Q_PROPERTY(QString durationString READ durationString NOTIFY durationChanged)
     Q_PROPERTY(QString errorString READ errorString NOTIFY statusChanged)
-    Q_PROPERTY(bool paused READ isPaused NOTIFY statusChanged)
-    Q_PROPERTY(bool playing READ isPlaying NOTIFY statusChanged)
+    Q_PROPERTY(bool paused READ isPaused WRITE setPaused NOTIFY statusChanged)
+    Q_PROPERTY(bool playing READ isPlaying WRITE setPlaying NOTIFY statusChanged)
     Q_PROPERTY(bool stopped READ isStopped NOTIFY statusChanged)
     Q_PROPERTY(qint64 position READ position WRITE setPosition NOTIFY positionChanged)
     Q_PROPERTY(QString positionString READ positionString NOTIFY positionChanged)
@@ -53,7 +53,9 @@ public:
         Stopped = 0,
         Paused,
         Loading,
+        Loaded,
         Buffering,
+        Buffered,
         Playing,
         Failed
     };
@@ -98,6 +100,9 @@ public:
 public Q_SLOTS:
     void setCurrentIndex(int i);
     
+    void setPaused(bool p);
+    void setPlaying(bool p);
+    
     void setPosition(qint64 p);
     
     void setRepeatEnabled(bool r);
@@ -105,6 +110,8 @@ public Q_SLOTS:
     void setShuffleEnabled(bool s);
     
     void setStopAfterCurrentTrack(bool s);
+    
+    bool addFolder(const QString &folder);
         
     void addTrack(MKTrack *track);
     void addTracks(const QList<MKTrack*> &tracks);
@@ -118,6 +125,7 @@ public Q_SLOTS:
     void next();
     void pause();
     void play();
+    bool playFolder(const QString &folder);
     void playTrack(MKTrack *track);
     void playTracks(const QList<MKTrack*> &tracks);
     void playUrl(const QUrl &url);
@@ -136,6 +144,7 @@ private:
 private Q_SLOTS:
     void shuffleTracks();
     
+    void onBufferStatusChanged(int b);
     void onError(QMediaPlayer::Error e);
     void onMediaStatusChanged(QMediaPlayer::MediaStatus m);
     void onPluginModelStatusChanged(ResourcesRequest::Status s);
@@ -161,7 +170,7 @@ Q_SIGNALS:
     
     void stopAfterCurrentTrackChanged(bool s);
     
-    void statusChanged(Status s);
+    void statusChanged(AudioPlayer::Status s);
 
 private:
     static AudioPlayer *self;

@@ -25,6 +25,7 @@ PluginTrackModel::PluginTrackModel(QObject *parent) :
     m_roles[ArtistIdRole] = "artistId";
     m_roles[DateRole] = "date";
     m_roles[DescriptionRole] = "description";
+    m_roles[DownloadableRole] = "downloadable";
     m_roles[DurationRole] = "duration";
     m_roles[DurationStringRole] = "durationString";
     m_roles[FormatRole] = "format";

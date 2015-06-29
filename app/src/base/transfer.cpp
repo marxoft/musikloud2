@@ -43,6 +43,7 @@ Transfer::Transfer(QObject *parent) :
     m_ownNetworkAccessManager(false),
     m_canceled(false),
     m_category(tr("Default")),
+    m_fileExtension(".mp3"),
     m_priority(NormalPriority),
     m_progress(0),
     m_size(0),
@@ -142,6 +143,17 @@ void Transfer::setErrorString(const QString &es) {
     m_errorString = es;
 #ifdef MUSIKLOUD_DEBUG
     qDebug() << "Transfer::setErrorString" << es;
+#endif
+}
+
+QString Transfer::fileExtension() const {
+    return m_fileExtension;
+}
+
+void Transfer::setFileExtension(const QString &ext) {
+    m_fileExtension = ext.startsWith('.') ? ext.toLower() : "." + ext.toLower();
+#ifdef MUSIKLOUD_DEBUG
+    qDebug() << "Transfer::setFileExtension" << m_fileExtension;
 #endif
 }
 
@@ -424,7 +436,23 @@ void Transfer::setTransferType(TransferType type) {
 }
 
 QUrl Transfer::url() const {
-    return m_reply ? m_reply->url() : QUrl();
+    return m_url;
+}
+
+void Transfer::setUrl(const QUrl &u) {
+    if (u != url()) {
+        m_url = u;
+        emit urlChanged();
+        
+        QString path = u.path();
+        
+        if (path.contains(QRegExp("\\.\\w{3,4}$"))) {
+            setFileExtension(path.mid(path.lastIndexOf('.')));
+        }
+    }
+#ifdef MUSIKLOUD_DEBUG
+    qDebug() << "Transfer::setUrl" << u;
+#endif
 }
 
 void Transfer::queue() {
@@ -513,6 +541,7 @@ void Transfer::cancel() {
 }
 
 void Transfer::startDownload(const QUrl &u) {
+    setUrl(u);
     QDir().mkpath(downloadPath());
     
     if (!m_file.open(m_file.exists() ? QFile::Append : QFile::WriteOnly)) {
@@ -547,6 +576,7 @@ void Transfer::startDownload(const QUrl &u) {
 }
 
 void Transfer::followRedirect(const QUrl &u) {
+    setUrl(u);
     QDir().mkpath(downloadPath());
     
     if (!m_file.open(m_file.exists() ? QFile::Append : QFile::WriteOnly)) {
@@ -579,18 +609,6 @@ void Transfer::followRedirect(const QUrl &u) {
     connect(m_reply, SIGNAL(finished()), this, SLOT(onReplyFinished()));
 }
 
-void Transfer::startThumbnailDownload(const QUrl &u) {    
-    if (!m_nam) {
-        m_nam = new QNetworkAccessManager(this);
-        m_ownNetworkAccessManager = true;
-    }
-#ifdef MUSIKLOUD_DEBUG
-    qDebug() << "Transfer::startThumbnailDownload: Downloading" << u;
-#endif
-    m_reply = m_nam->get(QNetworkRequest(u));
-    connect(m_reply, SIGNAL(finished()), this, SLOT(onSubtitlesReplyFinished()));
-}
-
 void Transfer::moveDownloadedFiles() {
     QDir destDir(Settings::instance()->downloadPath(category()));
     
@@ -604,7 +622,7 @@ void Transfer::moveDownloadedFiles() {
     
     foreach (QString oldFileName, downDir.entryList(QDir::Files)) {
         int i = 0;
-        QString newFileName = QString("%1/%2").arg(destDir.path()).arg(oldFileName);
+        QString newFileName = QString("%1/%2%3").arg(destDir.path()).arg(oldFileName).arg(fileExtension());
 
         while ((destDir.exists(newFileName)) && (i < 100)) {
             i++;
@@ -724,34 +742,6 @@ void Transfer::onReplyFinished() {
         setStatus(Failed);
         return;
     }
-    
-    moveDownloadedFiles();
-}
-
-void Transfer::onThumbnailReplyFinished() {
-    switch (m_reply->error()) {
-    case QNetworkReply::NoError:
-    case QNetworkReply::OperationCanceledError:
-        break;
-    default:
-#ifdef MUSIKLOUD_DEBUG
-        qDebug() << "Transfer::onThumbnailReplyFinished: Error" << m_reply->errorString();
-#endif
-        moveDownloadedFiles();
-        return;
-    }
-    
-    QFile file(m_file.fileName().left(m_file.fileName().lastIndexOf('.')) + ".jpg");
-#ifdef MUSIKLOUD_DEBUG
-    qDebug() << "Transfer::onThumbnailReplyFinished: Writing thumbnail to" << file.fileName();
-#endif
-    if (file.open(QFile::WriteOnly)) {
-        file.write(m_reply->readAll());
-        file.close();
-    }
-    
-    m_reply->deleteLater();
-    m_reply = 0;
     
     moveDownloadedFiles();
 }

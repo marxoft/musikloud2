@@ -53,11 +53,17 @@ SoundCloud* SoundCloud::instance() {
     return self;
 }
 
-QString SoundCloud::getErrorString(const QVariantMap &error) {
-    QVariantMap em = error.contains("error") ? error.value("error").toMap() : error;
-
-    if (em.contains("message")) {
-        return em.value("message").toString();
+QString SoundCloud::getErrorString(const QVariantMap &error) {    
+    if (error.contains("errors")) {
+        QVariantList errors = error.value("errors").toList();
+        
+        if (!errors.isEmpty()) {
+            QVariantMap em = errors.first().toMap();
+        
+            if (em.contains("error_message")) {
+                return em.value("error_message").toString();
+            }
+        }
     }
     
     return tr("Unknown error");

@@ -28,12 +28,13 @@ class SoundCloudActivity : public QObject
     Q_PROPERTY(QString activityTypeString READ activityTypeString NOTIFY activityTypeChanged)
     Q_PROPERTY(QString artist READ artist NOTIFY artistChanged)
     Q_PROPERTY(QString artistId READ artistId NOTIFY artistIdChanged)
+    Q_PROPERTY(QUrl artistThumbnailUrl READ artistThumbnailUrl NOTIFY artistThumbnailUrlChanged)
     Q_PROPERTY(QString date READ date NOTIFY dateChanged)
     Q_PROPERTY(QString description READ description NOTIFY descriptionChanged)
     Q_PROPERTY(QString errorString READ errorString NOTIFY statusChanged)
     Q_PROPERTY(QString id READ id NOTIFY idChanged)
     Q_PROPERTY(QString originId READ originId NOTIFY originIdChanged)
-    Q_PROPERTY(QUrl thumbnailUrl READ thumbnailUrl NOTIFY thumbnailUrlChanged)
+    Q_PROPERTY(QUrl originThumbnailUrl READ originThumbnailUrl NOTIFY originThumbnailUrlChanged)
     Q_PROPERTY(QSoundCloud::ResourcesRequest::Status status READ status NOTIFY statusChanged)
     Q_PROPERTY(QString title READ title NOTIFY titleChanged)
 
@@ -48,6 +49,7 @@ public:
     
     QString artist() const;
     QString artistId() const;
+    QUrl artistThumbnailUrl() const;
         
     QString date() const;
     
@@ -58,8 +60,7 @@ public:
     QString id() const;
     
     QString originId() const;
-    
-    QUrl thumbnailUrl() const;
+    QUrl originThumbnailUrl() const;
     
     QSoundCloud::ResourcesRequest::Status status() const;
     
@@ -76,6 +77,7 @@ private:
     
     void setArtist(const QString &a);
     void setArtistId(const QString &i);
+    void setArtistThumbnailUrl(const QUrl &u);
         
     void setDate(const QString &d);
     
@@ -84,10 +86,16 @@ private:
     void setId(const QString &i);
     
     void setOriginId(const QString &i);
-    
-    void setThumbnailUrl(const QUrl &u);
+    void setOriginThumbnailUrl(const QUrl &u);
     
     void setTitle(const QString &t);
+    
+    void loadCommentActivity(const QVariantMap &activity);
+    void loadPlaylistActivity(const QVariantMap &activity);
+    void loadTrackActivity(const QVariantMap &activity);
+    void loadTrackFavouritingActivity(const QVariantMap &activity);
+    void loadTrackRepostActivity(const QVariantMap &activity);
+    void loadTrackSharingActivity(const QVariantMap &activity);
 
 private Q_SLOTS:
     void onActivityRequestFinished();
@@ -97,6 +105,7 @@ Q_SIGNALS:
     
     void artistChanged();
     void artistIdChanged();
+    void artistThumbnailUrlChanged();
         
     void dateChanged();
     
@@ -105,8 +114,7 @@ Q_SIGNALS:
     void idChanged();
     
     void originIdChanged();
-    
-    void thumbnailUrlChanged();
+    void originThumbnailUrlChanged();
     
     void statusChanged(QSoundCloud::ResourcesRequest::Status s);
     
@@ -120,6 +128,7 @@ private:
     
     QString m_artist;
     QString m_artistId;
+    QUrl m_artistThumbnailUrl;
         
     QString m_date;
     
@@ -128,8 +137,7 @@ private:
     QString m_id;
     
     QString m_originId;
-    
-    QUrl m_thumbnailUrl;
+    QUrl m_originThumbnailUrl;
     
     QString m_title;
 };

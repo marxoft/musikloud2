@@ -33,25 +33,6 @@ MKTrack::MKTrack(QObject *parent) :
 {
 }
 
-MKTrack::MKTrack(const QUrl &url, QObject *parent) :
-    QObject(parent),
-    m_artist(tr("Unknown artist")),
-    m_date(tr("Unknown date")),
-    m_description(tr("No description")),
-    m_downloadable(url.scheme() != "file"),
-    m_duration(0),
-    m_durationString("--:--"),
-    m_format(url.path().section('.', -1).toUpper()),
-    m_genre(tr("Unknown genre")),
-    m_id(url.path()),
-    m_playCount(0),
-    m_size(0),
-    m_streamUrl(url),
-    m_title(url.path().section('/', -1).section('.', 0, -2)),
-    m_url(url)
-{
-}
-
 MKTrack::MKTrack(MKTrack *track, QObject *parent) :
     QObject(parent),
     m_artist(track->artist()),
@@ -292,6 +273,7 @@ void MKTrack::loadTrack(MKTrack *track) {
     setArtistId(track->artistId());
     setDate(track->date());
     setDescription(track->description());
+    setDownloadable(track->isDownloadable());
     setDuration(track->duration());
     setFormat(track->format());
     setGenre(track->genre());

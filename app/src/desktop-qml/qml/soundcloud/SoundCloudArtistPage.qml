@@ -28,7 +28,7 @@ Page {
         artist.loadArtist(artistOrId);
         
         if ((artist.id) && (!artist.followed) && (SoundCloud.userId)) {
-            user.checkIfFollowed();
+            artist.checkIfFollowed();
         }
     }
     

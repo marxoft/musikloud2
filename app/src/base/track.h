@@ -46,7 +46,6 @@ class MKTrack : public QObject
     
 public:
     explicit MKTrack(QObject *parent = 0);
-    explicit MKTrack(const QUrl &url, QObject *parent = 0);
     explicit MKTrack(MKTrack *track, QObject *parent = 0);
     
     QString artist() const;

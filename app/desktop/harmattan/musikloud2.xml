@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<actions>
+    <highlight regexp="[Hh][Tt][Tt][Pp]([Ss]|)://([Ww][Ww][Ww]\.|)([Ss][Oo][Uu][Nn][Dd][Cc][Ll][Oo][Uu][Dd]\.[Cc][Oo][Mm]/)[-_&amp;%#\./?\w=]+" name="soundcloud-url" specialCaseOf="http-url"/>
+</actions>

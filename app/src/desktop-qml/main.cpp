@@ -41,7 +41,6 @@
 #include "settings.h"
 #include "soundcloud.h"
 #include "soundcloudaccountmodel.h"
-#include "soundcloudactivitymodel.h"
 #include "soundcloudartistmodel.h"
 #include "soundcloudcommentmodel.h"
 #include "soundcloudconnectionmodel.h"
@@ -85,7 +84,6 @@ inline void registerTypes() {
     qmlRegisterType<SelectionModel>("MusiKloud", 2, 0, "SelectionModel");
     qmlRegisterType<ServiceModel>("MusiKloud", 2, 0, "ServiceModel");
     qmlRegisterType<SoundCloudAccountModel>("MusiKloud", 2, 0, "SoundCloudAccountModel");
-    qmlRegisterType<SoundCloudActivityModel>("MusiKloud", 2, 0, "SoundCloudActivityModel");
     qmlRegisterType<SoundCloudArtist>("MusiKloud", 2, 0, "SoundCloudArtist");
     qmlRegisterType<SoundCloudArtistModel>("MusiKloud", 2, 0, "SoundCloudArtistModel");
     qmlRegisterType<SoundCloudComment>("MusiKloud", 2, 0, "SoundCloudComment");

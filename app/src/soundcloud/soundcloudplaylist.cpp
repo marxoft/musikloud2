@@ -15,8 +15,9 @@
  */
 
 #include "soundcloudplaylist.h"
-#include "soundcloud.h"
+#include "definitions.h"
 #include "resources.h"
+#include "soundcloud.h"
 #include <QDateTime>
 
 SoundCloudPlaylist::SoundCloudPlaylist(QObject *parent) :
@@ -90,6 +91,7 @@ void SoundCloudPlaylist::loadPlaylist(const QString &id) {
 
 void SoundCloudPlaylist::loadPlaylist(const QVariantMap &playlist) {
     QVariantMap user = playlist.value("user").toMap();
+    const QString thumbnail = playlist.value("artwork_url").toString();
     
     setArtist(user.value("username").toString());
     setArtistId(user.value("id").toString());
@@ -99,9 +101,9 @@ void SoundCloudPlaylist::loadPlaylist(const QVariantMap &playlist) {
     setDuration(playlist.value("duration").toLongLong());
     setGenre(playlist.value("genre").toString());
     setId(playlist.value("id").toString());
-    setLargeThumbnailUrl(playlist.value("artwork_url").toString());
+    setLargeThumbnailUrl(QString("%1-t%2x%2.jpg").arg(thumbnail.left(thumbnail.lastIndexOf('-'))).arg(LARGE_THUMBNAIL_SIZE));
     setSharing(playlist.value("sharing").toString());
-    setThumbnailUrl(playlist.value("artwork_url").toString());
+    setThumbnailUrl(thumbnail);
     setTitle(playlist.value("title").toString());
     setTrackCount(playlist.value("track_count").toInt());    
 }

@@ -30,9 +30,15 @@ static const int MAX_REDIRECTS = 8;
 
 static const int MAX_RESULTS = 20;
 
+static const int LARGE_THUMBNAIL_SIZE = 300;
+static const int THUMBNAIL_SIZE = 64;
+
 static const QRegExp ILLEGAL_FILENAME_CHARS_RE("[\"@&~=\\/:?#!|<>*^]");
 
 static const QString VERSION_NUMBER("0.0.1");
+
+static const QStringList SUPPORTED_AUDIO_FORMATS = QStringList() << "*.aiff" << "*.ape" << "*.flac" << "*.m4a" << "*.mp3"
+                                                                 << "*.ogg" << "*.wav" << "*.wma";
 
 #if QT_VERSION >= 0x050000
 static const QString DATABASE_PATH(QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) + "/MusiKloud2/");

@@ -29,7 +29,7 @@ void SoundCloudNavModel::reload() {
         setStringList(QStringList() << tr("Accounts") << tr("Search"));
     }
     else {
-        setStringList(QStringList() << tr("Accounts") << tr("Search") << tr("Stream") << tr("Tracks")
-                                    << tr("Favourites") << tr("Sets") << tr("Followings"));
+        setStringList(QStringList() << tr("Accounts") << tr("Search") << tr("Tracks") << tr("Favourites") << tr("Sets")
+                                    << tr("Followings"));
     }
 }

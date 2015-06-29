@@ -1,0 +1,42 @@
+/*
+ * Copyright (C) 2015 Stuart Howarth <showarth@marxoft.co.uk>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#ifndef SCREEN_H
+#define SCREEN_H
+
+#include <QObject>
+
+class Screen : public QObject
+{
+    Q_OBJECT
+
+public:
+    explicit Screen(QObject *parent = 0);
+    ~Screen();
+
+    static Screen* instance();
+
+private slots:
+    void onScreenLockStateChanged(const QString &state);
+    
+signals:
+    void screenLockStateChanged(bool locked);
+    
+private:
+    static Screen* self;
+};
+
+#endif // SCREEN_H

@@ -56,7 +56,7 @@ class Transfer : public QObject
     Q_PROPERTY(QUrl streamUrl READ streamUrl WRITE setStreamUrl NOTIFY streamUrlChanged)
     Q_PROPERTY(QString title READ title WRITE setTitle NOTIFY titleChanged)
     Q_PROPERTY(TransferType transferType READ transferType WRITE setTransferType NOTIFY transferTypeChanged)
-    Q_PROPERTY(QUrl url READ url NOTIFY statusChanged)
+    Q_PROPERTY(QUrl url READ url NOTIFY urlChanged)
     
     Q_ENUMS(Priority Status TransferType)
     
@@ -99,7 +99,7 @@ public:
     void setDownloadPath(const QString &path);
     
     QString errorString() const;
-    
+        
     QString fileName() const;
     void setFileName(const QString &fn);
     
@@ -146,6 +146,9 @@ public Q_SLOTS:
 protected:
     virtual void listStreams() = 0;
     
+    QString fileExtension() const;
+    void setFileExtension(const QString &ext);
+    
     void setErrorString(const QString &es);
     
     void setProgress(int p);
@@ -153,19 +156,18 @@ protected:
     void setService(const QString &s);
         
     void setStatus(Status s);
+    
+    void setUrl(const QUrl &u);
         
     void startDownload(const QUrl &u);
     void followRedirect(const QUrl &u);
-    
-    void startThumbnailDownload(const QUrl &u);
-        
+            
     void moveDownloadedFiles();    
     
 private Q_SLOTS:
     void onReplyMetaDataChanged();
     void onReplyReadyRead();
     void onReplyFinished();
-    void onThumbnailReplyFinished();
     
 Q_SIGNALS:
     void categoryChanged();
@@ -182,6 +184,7 @@ Q_SIGNALS:
     void streamUrlChanged();
     void titleChanged();
     void transferTypeChanged();
+    void urlChanged();
 
 private:
 #ifdef MEEGO_EDITION_HARMATTAN
@@ -202,6 +205,8 @@ private:
     QString m_downloadPath;
     
     QString m_errorString;
+    
+    QString m_fileExtension;
     
     QString m_fileName;
     
@@ -229,6 +234,8 @@ private:
     QString m_title;
     
     TransferType m_transferType;
+    
+    QUrl m_url;
 #ifdef SYMBIAN_OS
     QByteArray m_buffer;
 #endif

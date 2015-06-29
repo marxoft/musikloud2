@@ -15,8 +15,9 @@
  */
 
 #include "soundcloudtrack.h"
-#include "soundcloud.h"
+#include "definitions.h"
 #include "resources.h"
+#include "soundcloud.h"
 #include "utils.h"
 #include <QDateTime>
 #ifdef MUSIKLOUD_DEBUG
@@ -182,6 +183,7 @@ void SoundCloudTrack::loadTrack(const QString &id) {
 
 void SoundCloudTrack::loadTrack(const QVariantMap &track) {
     QVariantMap user = track.value("user").toMap();
+    const QString thumbnail = track.value("artwork_url").toString();
     
     setArtist(user.value("username").toString());
     setArtistId(user.value("id").toString());
@@ -196,11 +198,11 @@ void SoundCloudTrack::loadTrack(const QVariantMap &track) {
     setFormat(track.value("original_format").toString().toUpper());
     setGenre(track.value("genre").toString());
     setId(track.value("id").toString());
-    setLargeThumbnailUrl(track.value("artwork_url").toString());
-    setThumbnailUrl(track.value("artwork_url").toString());
+    setLargeThumbnailUrl(QString("%1-t%2x%2.jpg").arg(thumbnail.left(thumbnail.lastIndexOf('-'))).arg(LARGE_THUMBNAIL_SIZE));
     setPlayCount(track.value("playback_count").toLongLong());
     setSize(track.value("original_content_size").toLongLong());
     setStreamable(track.value("streamable").toBool());
+    setThumbnailUrl(thumbnail);
     setTitle(track.value("title").toString());
     setUrl(track.value("permalink_url").toString());
     setWaveformUrl(track.value("waveform_url").toString());

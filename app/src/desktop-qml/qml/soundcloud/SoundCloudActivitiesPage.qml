@@ -120,7 +120,7 @@ Page {
         SoundCloudActivityPopup {
             z: 1000
             activityId: activityModel.data(popupMouseArea.row, "id")
-            thumbnail: activityModel.data(popupMouseArea.row, "thumbnailUrl")
+            thumbnail: activityModel.data(popupMouseArea.row, "originThumbnailUrl")
             title: activityModel.data(popupMouseArea.row, "title")
             type: activityModel.data(popupMouseArea.row, "activityTypeString");
             description: activityModel.data(popupMouseArea.row, "description")

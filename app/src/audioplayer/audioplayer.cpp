@@ -15,9 +15,12 @@
  */
 
 #include "audioplayer.h"
+#include "definitions.h"
+#include "localtrack.h"
 #include "resources.h"
 #include "settings.h"
 #include "utils.h"
+#include <QDir>
 #include <algorithm>
 #ifdef MUSIKLOUD_DEBUG
 #include <QDebug>
@@ -31,8 +34,8 @@ AudioPlayer::AudioPlayer(QObject *parent) :
     m_queue(new TrackModel(this)),
     m_soundcloudModel(0),
     m_pluginModel(0),
-    m_index(-1),
-    m_shuffleIndex(-1),
+    m_index(0),
+    m_shuffleIndex(0),
     m_repeat(false),
     m_shuffle(false),
     m_stopAfterCurrentTrack(false),
@@ -42,7 +45,7 @@ AudioPlayer::AudioPlayer(QObject *parent) :
         self = this;
     }
     
-    connect(m_player, SIGNAL(bufferStatusChanged(int)), this, SIGNAL(bufferStatusChanged(int)));
+    connect(m_player, SIGNAL(bufferStatusChanged(int)), this, SLOT(onBufferStatusChanged(int)));
     connect(m_player, SIGNAL(durationChanged(qint64)), this, SIGNAL(durationChanged(qint64)));
     connect(m_player, SIGNAL(error(QMediaPlayer::Error)), this, SLOT(onError(QMediaPlayer::Error)));
     connect(m_player, SIGNAL(mediaStatusChanged(QMediaPlayer::MediaStatus)),
@@ -80,7 +83,7 @@ void AudioPlayer::setCurrentIndex(int i) {
         emit currentIndexChanged(i);
         
         if (MKTrack *track = currentTrack()) {
-            m_player->stop();
+            stop();
             
             if (!track->streamUrl().isEmpty()) {
                 m_player->setMedia(track->streamUrl());
@@ -126,8 +129,26 @@ bool AudioPlayer::isPaused() const {
     return status() == Paused;
 }
 
+void AudioPlayer::setPaused(bool p) {
+    if (p) {
+        pause();
+    }
+    else if (isPaused()) {
+        play();
+    }
+}
+
 bool AudioPlayer::isPlaying() const {
     return status() == Playing;
+}
+
+void AudioPlayer::setPlaying(bool p) {
+    if (p) {
+        play();
+    }
+    else if (isPlaying()) {
+        pause();
+    }
 }
 
 bool AudioPlayer::isStopped() const {
@@ -218,6 +239,18 @@ void AudioPlayer::setStatus(AudioPlayer::Status s) {
     }
 }
 
+bool AudioPlayer::addFolder(const QString &folder) {
+    QList<QUrl> urls;
+    QDir dir(folder);
+    
+    foreach (QString fileName, dir.entryList(SUPPORTED_AUDIO_FORMATS, QDir::Files)) {
+        urls << QUrl::fromLocalFile(dir.absoluteFilePath(fileName));
+    }
+    
+    addUrls(urls);
+    return !urls.isEmpty();
+}
+
 void AudioPlayer::addTrack(MKTrack *track) {
     m_queue->append(new MKTrack(track, m_queue));
     
@@ -281,7 +314,7 @@ void AudioPlayer::removeTrack(int i) {
 }
 
 void AudioPlayer::addUrl(const QUrl &url) {
-    m_queue->append(new MKTrack(url, m_queue));
+    m_queue->append(new LocalTrack(url, m_queue));
     
     if (shuffleEnabled()) {
         shuffleTracks();
@@ -290,7 +323,7 @@ void AudioPlayer::addUrl(const QUrl &url) {
 
 void AudioPlayer::addUrls(const QList<QUrl> &urls) {
     foreach (QUrl url, urls) {
-        m_queue->append(new MKTrack(url, m_queue));
+        m_queue->append(new LocalTrack(url, m_queue));
     }
     
     if (shuffleEnabled()) {
@@ -302,8 +335,8 @@ void AudioPlayer::clearQueue() {
     stop();
     m_queue->clear();
     m_shuffleOrder.clear();
-    m_index = -1;
-    m_shuffleIndex = -1;
+    m_index = 0;
+    m_shuffleIndex = 0;
 }
 
 void AudioPlayer::next() {
@@ -326,36 +359,49 @@ void AudioPlayer::play() {
     if (status() == Paused) {
         m_player->play();
     }
-    else if (currentIndex() == -1) {
-        next();
-    }
     else {
         setCurrentIndex(currentIndex());
     }
 }
 
+bool AudioPlayer::playFolder(const QString &folder) {
+    QList<QUrl> urls;
+    QDir dir(folder);
+    
+    foreach (QString fileName, dir.entryList(SUPPORTED_AUDIO_FORMATS, QDir::Files)) {
+        urls << QUrl::fromLocalFile(dir.absoluteFilePath(fileName));
+    }
+    
+    if (urls.isEmpty()) {
+        return false;
+    }
+    
+    playUrls(urls);
+    return true;
+}
+
 void AudioPlayer::playTrack(MKTrack *track) {
     clearQueue();
     addTrack(track);
-    next();
+    play();
 }
 
 void AudioPlayer::playTracks(const QList<MKTrack*> &tracks) {
     clearQueue();
     addTracks(tracks);
-    next();
+    play();
 }
 
 void AudioPlayer::playUrl(const QUrl &url) {
     clearQueue();
     addUrl(url);
-    next();
+    play();
 }
 
 void AudioPlayer::playUrls(const QList<QUrl> &urls) {
     clearQueue();
     addUrls(urls);
-    next();
+    play();
 }
 
 void AudioPlayer::previous() {
@@ -372,6 +418,14 @@ void AudioPlayer::previous() {
 
 void AudioPlayer::stop() {
     m_player->stop();
+    
+    if (m_soundcloudModel) {
+        m_soundcloudModel->cancel();
+    }
+    
+    if (m_pluginModel) {
+        m_pluginModel->cancel();
+    }
 }
 
 void AudioPlayer::initPluginModel() {
@@ -406,6 +460,15 @@ void AudioPlayer::shuffleTracks() {
 #ifdef MUSIKLOUD_DEBUG
     qDebug() << "AudioPlayer::shuffleTracks after:" << m_shuffleOrder;
 #endif
+}
+
+void AudioPlayer::onBufferStatusChanged(int b) {
+    // Workaround as QMediaPlayer does not notify when mediaStatus changes to QMediaPlayer::BufferingMedia
+    if (b < 100) {
+        setStatus(Buffering);
+    }
+    
+    emit bufferStatusChanged(b);
 }
 
 void AudioPlayer::onError(QMediaPlayer::Error e) {
@@ -453,11 +516,16 @@ void AudioPlayer::onPluginModelStatusChanged(ResourcesRequest::Status s) {
         setStatus(Loading);
         break;
     case ResourcesRequest::Ready:
+        setStatus(Loaded);
+        
         if (m_pluginModel->rowCount() > 0) {
             m_player->setMedia(QUrl(m_pluginModel->data(qMax(0, m_pluginModel->match("name",
                                Settings::instance()->defaultPlaybackFormat(m_pluginModel->service()))), "value")
                                .toMap().value("url").toString()));
-            m_player->play();
+           
+           if (!isPaused()) {
+                m_player->play();
+           }
         }
         else {
             setErrorString(tr("No streams found for '%1'").arg(currentTrack() ? currentTrack()->title()
@@ -481,11 +549,16 @@ void AudioPlayer::onSoundCloudModelStatusChanged(QSoundCloud::StreamsRequest::St
         setStatus(Loading);
         break;
     case QSoundCloud::StreamsRequest::Ready:
+        setStatus(Loaded);
+        
         if (m_soundcloudModel->rowCount() > 0) {
             m_player->setMedia(QUrl(m_soundcloudModel->data(qMax(0, m_soundcloudModel->match("name",
                                Settings::instance()->defaultPlaybackFormat(Resources::SOUNDCLOUD))), "value")
                                .toMap().value("url").toString()));
-            m_player->play();
+            
+            if (!isPaused()) {
+                m_player->play();
+            }
         }
         else {
             setErrorString(tr("No streams found for '%1'").arg(currentTrack() ? currentTrack()->title()
