@@ -24,12 +24,16 @@ class PluginCategoryModel : public SelectionModel
 {
     Q_OBJECT
     
+    Q_PROPERTY(bool canFetchMore READ canFetchMore NOTIFY statusChanged)
     Q_PROPERTY(QString errorString READ errorString NOTIFY statusChanged)
     Q_PROPERTY(QString service READ service WRITE setService NOTIFY serviceChanged)
     Q_PROPERTY(ResourcesRequest::Status status READ status NOTIFY statusChanged)
     
 public:
     explicit PluginCategoryModel(QObject *parent = 0);
+    
+    bool canFetchMore(const QModelIndex &parent = QModelIndex()) const;
+    Q_INVOKABLE void fetchMore(const QModelIndex &parent = QModelIndex());
     
     QString service() const;
     void setService(const QString &service);
@@ -55,6 +59,7 @@ private:
     ResourcesRequest *m_request;
     
     QString m_id;
+    QString m_next;
 };
     
 #endif // PLUGINCATEGORYMODEL_H

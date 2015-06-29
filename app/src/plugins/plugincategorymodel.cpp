@@ -25,6 +25,19 @@ PluginCategoryModel::PluginCategoryModel(QObject *parent) :
     connect(m_request, SIGNAL(finished()), this, SLOT(onRequestFinished()));
 }
 
+bool PluginCategoryModel::canFetchMore(const QModelIndex &) const {
+    return (status() != ResourcesRequest::Loading) && (!m_next.isEmpty());
+}
+
+void PluginCategoryModel::fetchMore(const QModelIndex &) {
+    if (!canFetchMore()) {
+        return;
+    }
+    
+    m_request->list(Resources::CATEGORY, m_next);
+    emit statusChanged(status());
+}
+
 QString PluginCategoryModel::service() const {
     return m_request->service();
 }
@@ -48,6 +61,7 @@ void PluginCategoryModel::list(const QString &id) {
     
     clear();
     m_id = id;
+    m_next = QString();
     m_request->list(Resources::CATEGORY, id);
     emit statusChanged(status());
 }
@@ -58,13 +72,17 @@ void PluginCategoryModel::cancel() {
 
 void PluginCategoryModel::reload() {
     clear();
+    m_next = QString();
     m_request->list(Resources::CATEGORY, m_id);
     emit statusChanged(status());
 }
 
 void PluginCategoryModel::onRequestFinished() {
     if (m_request->status() == ResourcesRequest::Ready) {
-        foreach (QVariant v, m_request->result().toMap().value("items").toList()) {
+        QVariantMap result = m_request->result().toMap();
+        m_next = result.value("next").toString();
+        
+        foreach (QVariant v, result.value("items").toList()) {
             QVariantMap category = v.toMap();
             append(category.value("title").toString(), category.value("id").toString());
         }
