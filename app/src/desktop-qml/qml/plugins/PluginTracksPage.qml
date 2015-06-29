@@ -114,6 +114,7 @@ Page {
         MenuItem {
             text: qsTr("Download")
             iconName: "folder-download"
+            enabled: (view.currentRow >= 0) && (trackmodel.data(view.currentRow, "downloadable"))
             onTriggered: {
                 loader.sourceComponent = downloadDialog;
                 loader.item.open();

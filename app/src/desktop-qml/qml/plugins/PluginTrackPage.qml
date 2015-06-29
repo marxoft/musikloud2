@@ -95,6 +95,7 @@ Page {
                         Layout.fillWidth: true
                         text: qsTr("Download")
                         iconName: "folder-download"
+                        enabled: track.downloadable
                         onClicked: {
                             loader.sourceComponent = downloadDialog;
                             loader.item.open();
