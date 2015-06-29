@@ -22,7 +22,6 @@
 #include "database.h"
 #include "dbusservice.h"
 #include "definitions.h"
-#include "localemodel.h"
 #include "networkproxytypemodel.h"
 #include "pluginartistmodel.h"
 #include "plugincategorymodel.h"
@@ -63,7 +62,6 @@ inline void registerTypes() {
     qmlRegisterType<CategoryModel>("MusiKloud", 2, 0, "CategoryModel");
     qmlRegisterType<CategoryNameModel>("MusiKloud", 2, 0, "CategoryNameModel");
     qmlRegisterType<ConcurrentTransfersModel>("MusiKloud", 2, 0, "ConcurrentTransfersModel");
-    qmlRegisterType<LocaleModel>("MusiKloud", 2, 0, "LocaleModel");
     qmlRegisterType<MKTrack>("MusiKloud", 2, 0, "Track");
     qmlRegisterType<NetworkProxyTypeModel>("MusiKloud", 2, 0, "NetworkProxyTypeModel");
     qmlRegisterType<PluginArtist>("MusiKloud", 2, 0, "PluginArtist");
