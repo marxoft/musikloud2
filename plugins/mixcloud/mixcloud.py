@@ -17,9 +17,13 @@
 from datetime import datetime
 import getopt
 import re
-import simplejson as json
 import sys
 import urllib2
+
+try:
+    import json
+except ImportError:
+    import simplejson as json
 
 API_URL = 'https://api.mixcloud.com'
 

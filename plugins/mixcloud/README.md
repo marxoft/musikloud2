@@ -24,10 +24,6 @@ The following resources are supported:
         <td>list</td>
     </tr>
     <tr>
-        <td>artist</td>
-        <td>search, get</td>
-    </tr>
-    <tr>
         <td>stream</td>
         <td>list</td>
     </tr>
