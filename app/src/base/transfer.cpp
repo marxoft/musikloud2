@@ -60,7 +60,7 @@ Transfer::Transfer(QObject *parent) :
     
     m_tuiTransfer = tuiClient->registerTransfer(QString(), TransferUI::Client::TRANSFER_TYPES_DOWNLOAD);
     m_tuiTransfer->waitForCommit();
-    m_tuiTransfer->setIcon("icon-m-content-music");
+    m_tuiTransfer->setIcon("icon-m-content-audio");
     m_tuiTransfer->setCanPause(true);
     m_tuiTransfer->markPaused();
     m_tuiTransfer->commit();
