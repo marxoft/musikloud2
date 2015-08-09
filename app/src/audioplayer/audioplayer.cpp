@@ -274,6 +274,18 @@ void AudioPlayer::addTracks(const QList<MKTrack*> &tracks) {
     }
 }
 
+void AudioPlayer::addTracks(const QVariantList &tracks) {
+    foreach (QVariant v, tracks) {
+        if (MKTrack *track = qobject_cast<MKTrack*>(v.value<QObject*>())) {
+            m_queue->append(new MKTrack(track, m_queue));
+        }
+    }
+    
+    if (shuffleEnabled()) {
+        shuffleTracks();
+    }
+}
+
 void AudioPlayer::removeTrack(int i) {
 #ifdef MUSIKLOUD_DEBUG
     qDebug() << "AudioPlayer::removeTrack" << i;
@@ -361,11 +373,14 @@ void AudioPlayer::pause() {
 }
 
 void AudioPlayer::play() {
-    if (status() == Paused) {
-        m_player->play();
-    }
-    else {
+    switch (status()) {
+    case Stopped:
+    case Failed:
         setCurrentIndex(currentIndex());
+        break;
+    default:
+        m_player->play();
+        break;
     }
 }
 
@@ -397,6 +412,12 @@ void AudioPlayer::playTracks(const QList<MKTrack*> &tracks) {
     play();
 }
 
+void AudioPlayer::playTracks(const QVariantList &tracks) {
+    clearQueue();
+    addTracks(tracks);
+    play();
+}
+
 void AudioPlayer::playUrl(const QUrl &url) {
     clearQueue();
     addUrl(url);
@@ -423,6 +444,7 @@ void AudioPlayer::previous() {
 
 void AudioPlayer::stop() {
     m_player->stop();
+    m_player->setMedia(QMediaContent());
     
     if (m_soundcloudModel) {
         m_soundcloudModel->cancel();

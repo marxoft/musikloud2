@@ -115,6 +115,7 @@ public Q_SLOTS:
         
     void addTrack(MKTrack *track);
     void addTracks(const QList<MKTrack*> &tracks);
+    void addTracks(const QVariantList &tracks); // For QML
     void removeTrack(int i);    
     
     void addUrl(const QUrl &url);
@@ -128,6 +129,7 @@ public Q_SLOTS:
     bool playFolder(const QString &folder);
     void playTrack(MKTrack *track);
     void playTracks(const QList<MKTrack*> &tracks);
+    void playTracks(const QVariantList &tracks); // For QML
     void playUrl(const QUrl &url);
     void playUrls(const QList<QUrl> &urls);
     void previous();
