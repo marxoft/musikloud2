@@ -17,10 +17,14 @@
 from datetime import datetime
 import getopt
 import re
-import simplejson as json
 import sys
 import urllib2
 import xml.etree.ElementTree as elemtree
+
+try:
+    import json
+except ImportError:
+    import simplejson as json
 
 ACCESS_TOKEN = 'ZjdjOTlmMDI4NGE0OWNkMzgxMzIzZTZiYTM4YmM2OTQ3NzgwMzE1OToK'
 
