@@ -35,7 +35,7 @@ static const int THUMBNAIL_SIZE = 64;
 
 static const QRegExp ILLEGAL_FILENAME_CHARS_RE("[\"@&~=\\/:?#!|<>*^]");
 
-static const QString VERSION_NUMBER("0.0.1");
+static const QString VERSION_NUMBER("0.0.3");
 
 static const QStringList SUPPORTED_AUDIO_FORMATS = QStringList() << "*.aiff" << "*.ape" << "*.flac" << "*.m4a" << "*.mp3"
                                                                  << "*.ogg" << "*.wav" << "*.wma";
