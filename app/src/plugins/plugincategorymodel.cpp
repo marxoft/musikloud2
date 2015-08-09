@@ -80,12 +80,14 @@ void PluginCategoryModel::reload() {
 void PluginCategoryModel::onRequestFinished() {
     if (m_request->status() == ResourcesRequest::Ready) {
         QVariantMap result = m_request->result().toMap();
-        m_next = result.value("next").toString();
+        m_next = QString();
         
         foreach (QVariant v, result.value("items").toList()) {
             QVariantMap category = v.toMap();
             append(category.value("title").toString(), category.value("id").toString());
         }
+        
+        m_next = result.value("next").toString();
     }
     
     emit statusChanged(status());
