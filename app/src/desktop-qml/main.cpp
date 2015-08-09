@@ -108,7 +108,6 @@ Q_DECL_EXPORT int main(int argc, char *argv[]) {
     app.setWindowIcon(QIcon::fromTheme("musikloud2"));
 
     Settings settings;
-    AudioPlayer player;
     Clipboard clipboard;
     DBusService dbus;
     Resources resources;
