@@ -1,3 +1,9 @@
+musikloud2 (0.0.3) unstable; urgency=low
+  * Fix fetching of further results from the SoundCloud API.
+  * Fix unneccessary fetching of further results when loading plugin categories.
+
+ -- Stuart Howarth <showarth@marxoft.co.uk>  Sun, 09 Aug 2015 14:37:15 +0000
+
 musikloud2 (0.0.2) unstable; urgency=low
   * Enable fetching of more results when retrieving plugin categories.
   * Better adaptation of the 'Now playing' UI for non-seekable streams.
