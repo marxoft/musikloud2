@@ -1,0 +1,6 @@
+<aegis>
+    <request>
+        <credential name="GRP::pulse-access" />
+        <for path="/opt/musikloud2/bin/musikloud2" />
+    </request>
+</aegis>

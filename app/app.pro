@@ -257,6 +257,73 @@ maemo5 {
         desktopfile \
         icon
 
+} else:contains(MEEGO_EDITION,harmattan) {
+    LIBS += -L../../qsoundcloud/lib -lqsoundcloud
+    
+    QT += declarative opengl
+    CONFIG += \
+        link_pkgconfig \
+        qdeclarative-boostable \
+        libtuiclient \
+        shareuiinterface-maemo-meegotouch \
+        share-ui-common \
+        mdatauri
+    
+    INCLUDEPATH += \
+        src/harmattan
+    
+    HEADERS += \
+        src/harmattan/activecolormodel.h \
+        src/harmattan/cookiejar.h \
+        src/harmattan/definitions.h \
+        src/harmattan/maskeditem.h \
+        src/harmattan/maskeffect.h \
+        src/harmattan/networkaccessmanagerfactory.h \
+        src/harmattan/screenorientationmodel.h \
+        src/harmattan/shareui.h
+        
+    SOURCES += \
+        src/harmattan/cookiejar.cpp \
+        src/harmattan/main.cpp \
+        src/harmattan/maskeditem.cpp \
+        src/harmattan/maskeffect.cpp \
+        src/harmattan/networkaccessmanagerfactory.cpp \
+        src/harmattan/shareui.cpp
+    
+    base_qml.files = $$files(src/harmattan/qml/*.qml)
+    base_qml.path = /opt/musikloud2/qml
+    
+    plugins_qml.files = $$files(src/harmattan/qml/plugins/*.qml)
+    plugins_qml.path = /opt/musikloud2/qml/plugins
+
+    soundcloud_qml.files = $$files(src/harmattan/qml/soundcloud/*.qml)
+    soundcloud_qml.path = /opt/musikloud2/qml/soundcloud
+    
+    images.files = $$files(src/harmattan/qml/images/*.*)
+    images.path = /opt/musikloud2/qml/images
+
+    desktop.files = desktop/harmattan/musikloud2.desktop
+    desktop.path = /usr/share/applications
+
+    icon.files = desktop/harmattan/80/musikloud2.png
+    icon.path = /usr/share/icons/hicolor/80x80/apps
+
+    contentaction.files = desktop/harmattan/musikloud2.xml
+    contentaction.path = /usr/share/contentaction
+
+    splash.files = desktop/harmattan/splash/*.png
+    splash.path = /opt/musikloud2/splash
+
+    INSTALLS += \
+        base_qml \
+        plugins_qml \
+        soundcloud_qml \
+        images \
+        desktop \
+        icon \
+        contentaction \
+        splash
+    
 } else:unix {
     QT += qml quick widgets
     

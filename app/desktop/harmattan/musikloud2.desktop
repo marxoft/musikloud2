@@ -1,0 +1,13 @@
+[Desktop Entry]
+Encoding=UTF-8
+Version=1.0
+Type=Application
+Terminal=false
+Name=MusiKloud2
+X-logical-id=musikloud2
+X-translation-catalog=musikloud2
+Exec=/usr/bin/invoker --type=d -s --splash=/opt/musikloud2/splash/splash-portrait.png --splash-landscape=/opt/musikloud2/splash/splash-landscape.png /opt/musikloud2/bin/musikloud2
+Icon=/usr/share/icons/hicolor/80x80/apps/musikloud2.png
+MimeType=x-maemo-highlight/soundcloud-url;
+X-Maemo-Service=org.marxoft.musikloud2
+X-Maemo-Method=org.marxoft.musikloud2.showResource
