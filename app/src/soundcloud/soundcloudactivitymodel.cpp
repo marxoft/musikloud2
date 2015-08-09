@@ -16,6 +16,7 @@
 
 #include "soundcloudactivitymodel.h"
 #include "soundcloud.h"
+#include <qsoundcloud/urls.h>
 
 SoundCloudActivityModel::SoundCloudActivityModel(QObject *parent) :
     QAbstractListModel(parent),
@@ -190,7 +191,7 @@ void SoundCloudActivityModel::onRequestFinished() {
         QVariantMap result = m_request->result().toMap();
         
         if (!result.isEmpty()) {
-            m_nextHref = result.value("next_href").toString().section('/', -1);
+            m_nextHref = result.value("next_href").toString().section(QSoundCloud::API_URL, -1);
             QVariantList list = result.value("collection").toList();
 
             beginInsertRows(QModelIndex(), m_items.size(), m_items.size() + list.size() - 1);

@@ -16,6 +16,7 @@
 
 #include "soundcloudtrackmodel.h"
 #include "soundcloud.h"
+#include <qsoundcloud/urls.h>
 #ifdef MUSIKLOUD_DEBUG
 #include <QDebug>
 #endif
@@ -218,7 +219,7 @@ void SoundCloudTrackModel::onRequestFinished() {
         QVariantMap result = m_request->result().toMap();
         
         if (!result.isEmpty()) {
-            m_nextHref = result.value("next_href").toString().section('/', -1);
+            m_nextHref = result.value("next_href").toString().section(QSoundCloud::API_URL, -1);
             QVariantList list = result.value(m_resourcePath.contains("/playlists/") ? "tracks" : "collection").toList();
 
             beginInsertRows(QModelIndex(), m_items.size(), m_items.size() + list.size() - 1);
