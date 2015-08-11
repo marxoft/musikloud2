@@ -85,7 +85,8 @@ MySheet {
                             streamSelector.showProgressIndicator = false;
                         }
                     }
-                    onValueChanged: Settings.setDefaultDownloadFormat(streamModel.service, subTitle)
+                    onValueChanged: Settings.setDefaultDownloadFormat(streamModel.service,
+                                                                      streamModel.data(selectedIndex, "name"))
                 }
 
                 ValueSelector {
