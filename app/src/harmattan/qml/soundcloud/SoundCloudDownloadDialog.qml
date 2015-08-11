@@ -86,6 +86,18 @@ MySheet {
                     onAccepted: Settings.setDefaultDownloadFormat(Resources.SOUNDCLOUD,
                                                                   streamModel.data(selectedIndex, "name"))
                 }
+                
+                ValueSelector {
+                    id: categorySelector
+
+                    width: parent.width
+                    title: qsTr("Category")
+                    model: CategoryNameModel {
+                        id: categoryModel
+                    }
+                    value: Settings.defaultCategory
+                    onValueChanged: Settings.defaultCategory = value
+                }
             }
         }
 
