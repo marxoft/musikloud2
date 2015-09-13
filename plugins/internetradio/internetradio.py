@@ -26,9 +26,7 @@ try:
 except ImportError:
     import simplejson as json
 
-ACCESS_TOKEN = 'ZjdjOTlmMDI4NGE0OWNkMzgxMzIzZTZiYTM4YmM2OTQ3NzgwMzE1OToK'
-
-API_URL = 'https://cuteradio.herokuapp.com'
+API_URL = 'http://marxoft.co.uk/api/cuteradio'
 COUNTRIES_URL = API_URL + '/countries'
 GENRES_URL = API_URL + '/genres'
 LANGUAGES_URL = API_URL + '/languages'
@@ -48,17 +46,9 @@ def format_date(date_string, date_format = '%a, %d %b %Y %H:%M:%S %Z'):
     except:
         return date_string
 
-def get_response(url, token_required = False):
+def get_response(url):
     try:        
-        if token_required:
-            url = re.sub(r'&(?![\w_]+=)', '%26', url).replace(' ', '%20').replace('\\"', '"')
-            request = urllib2.Request(url)
-            request.add_header('Content-Type', 'application/json')
-            request.add_header('Accept', 'application/json')
-            request.add_header('Authorization', 'Basic ' + ACCESS_TOKEN)
-            return urllib2.urlopen(request).read()
-        else:
-            return urllib2.urlopen(url).read()
+        return urllib2.urlopen(url).read()
     except:
         raise ResourceError('{"error": "Unable to retrieve data from %s"}' % url)
 
@@ -135,11 +125,11 @@ def list_tracks(url):
         raise ResourceError('{"error": "No URL specified"}')
         
     try:
-        if url[0:8] != 'https://':
+        if url[0:7] != 'http://':
             # Get related stations
-            url = '%s?where={"genre":"%s"}&max_results=%d' % (STATIONS_URL, get_track(url)['genre'], MAX_RESULTS)
+            url = '%s?genre=%s&limit=%d' % (STATIONS_URL, get_track(url)['genre'], MAX_RESULTS)
         
-        response = json.loads(get_response(url, True))
+        response = json.loads(get_response(url))
     except:
         raise ResourceError('{"error": "Unable to parse response from %s"}' % url)
     
@@ -149,7 +139,6 @@ def list_tracks(url):
     for item in response['items']:
         try:
             track = {}
-            track['date'] = format_date(item['created'])
             track['description'] = item['description']
             track['downloadable'] = False
             track['duration'] = 0
@@ -168,23 +157,22 @@ def list_tracks(url):
     result['items'] = tracks
     
     try:
-        result['next'] = 'https://' + response['links']['next']['href']
+        result['next'] = API_URL + response['next']
     except:
         pass
     
     return result
 
 def search_tracks(query, order):
-    return list_tracks('%s?where={"title":{"$regex":"%s","$options":"i"}}&max_results=%d' % (STATIONS_URL, query, MAX_RESULTS))
+    return list_tracks('%s?search=%s&limit=%d' % (STATIONS_URL, query, MAX_RESULTS))
 
 def get_track(id):
     if not id:
         raise ResourceError('{"error": "No ID specified"}')
         
     try:
-        item = json.loads(get_response(STATIONS_URL + '/' + id, True))
+        item = json.loads(get_response(STATIONS_URL + '/' + id))['items'][0]
         track = {}
-        track['date'] = format_date(item['created'])
         track['description'] = item['description']
         track['downloadable'] = False
         track['duration'] = 0
@@ -205,7 +193,7 @@ def list_categories(url):
         raise ResourceError('{"error": "No URL specified"}')
         
     try:
-        response = json.loads(get_response(url, True))
+        response = json.loads(get_response(url))
     except:
         raise ResourceError('{"error": "Unable to parse response from %s"}' % url)
     
@@ -226,7 +214,7 @@ def list_categories(url):
     for item in response['items']:
         try:
             category = {}
-            category['id'] = '%s?where={"%s":"%s"}&max_results=%d' % (STATIONS_URL, category_type, item['name'], MAX_RESULTS)
+            category['id'] = '%s?%s=%s&limit=%d' % (STATIONS_URL, category_type, item['name'], MAX_RESULTS)
             category['title'] = item['name']
             categories.append(category)
         except:
@@ -235,7 +223,7 @@ def list_categories(url):
     result['items'] = categories
     
     try:
-        result['next'] = 'https://' + response['links']['next']['href']
+        result['next'] = API_URL + response['next']
     except:
         pass
     

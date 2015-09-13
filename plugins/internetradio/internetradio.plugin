@@ -1,10 +1,10 @@
 <plugin name="Internet radio" exec="/opt/musikloud2/plugins/internetradio/internetradio.py">
     <resources>
         <resource method="list" type="stream" />
-        <resource method="list" name="All stations" type="track" id="https://cuteradio.herokuapp.com/stations" />
-        <resource method="list" name="Stations by country" type="category" id="https://cuteradio.herokuapp.com/countries" />
-        <resource method="list" name="Stations by genre" type="category" id="https://cuteradio.herokuapp.com/genres" />
-        <resource method="list" name="Stations by language" type="category" id="https://cuteradio.herokuapp.com/languages" />
+        <resource method="list" name="All stations" type="track" id="http://marxoft.co.uk/api/cuteradio/stations" />
+        <resource method="list" name="Stations by country" type="category" id="http://marxoft.co.uk/api/cuteradio/countries" />
+        <resource method="list" name="Stations by genre" type="category" id="http://marxoft.co.uk/api/cuteradio/genres" />
+        <resource method="list" name="Stations by language" type="category" id="http://marxoft.co.uk/api/cuteradio/languages" />
         <resource method="search" name="Stations" type="track" order="" />
     </resources>
 </plugin>
