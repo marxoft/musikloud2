@@ -1,3 +1,8 @@
+musikloud2-internetradio (0.0.2) unstable; urgency=low
+  * Use cuteRadio Data API hosted at marxoft.co.uk.
+
+ -- Stuart Howarth <showarth@marxoft.co.uk>  Sun, 13 Sep 2015 02:32:34 +0000
+
 musikloud2-internetradio (0.0.1) unstable; urgency=low
   * Initial release.
 
