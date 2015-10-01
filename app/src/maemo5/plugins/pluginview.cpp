@@ -41,6 +41,7 @@ PluginView::PluginView(const QString &service, QWidget *parent) :
     m_view->setModel(m_model);
     m_view->setItemDelegate(new NavDelegate(m_view));
     m_layout->addWidget(m_view);
+    m_layout->setContentsMargins(0, 0, 0, 0);
     
     connect(m_view, SIGNAL(activated(QModelIndex)), this, SLOT(onItemActivated(QModelIndex)));
 }

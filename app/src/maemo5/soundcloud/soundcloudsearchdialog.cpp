@@ -43,6 +43,7 @@ SoundCloudSearchDialog::SoundCloudSearchDialog(QWidget *parent) :
                                     Settings::instance()->defaultSearchType(Resources::SOUNDCLOUD))));
     
     m_searchEdit->setPlaceholderText(tr("Search"));
+    m_searchEdit->setFocus(Qt::OtherFocusReason);
     
     m_searchButton->setDefault(true);
     m_searchButton->setEnabled(false);
