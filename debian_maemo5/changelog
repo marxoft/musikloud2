@@ -1,3 +1,10 @@
+musikloud2 (0.0.4) unstable; urgency=low
+  * UI tweaks.
+  * Register DBus interface (org.marxoft.cutetube2).
+  * Fix crashing when clearing stacked windows.
+
+ -- Stuart Howarth <showarth@marxoft.co.uk>  Thu, 01 Oct 2015 16:25:41 +0000
+
 musikloud2 (0.0.3) unstable; urgency=low
   * Fix fetching of further results from the SoundCloud API.
   * Fix unneccessary fetching of further results when loading plugin categories.
