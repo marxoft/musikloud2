@@ -1,0 +1,39 @@
+musikloud2 (0.2.0) unstable; urgency=low
+  * Add sleep timer function.
+  * UI improvements.
+
+ -- Stuart Howarth <showarth@marxoft.co.uk>  Sat, 14 Jan 2017 22:04:34 +0000
+
+musikloud2 (0.1.0) unstable; urgency=low
+  * New plugin API adding support for Qt/C++ and JavaScript plugins.
+  * Support for playing remote URLs.
+  * Support for downloading tracks in 'now playing' window.
+  * Option to stop playback after current track.
+  * Save and optionally restore playback queue.
+  * Search folders recursively when playing a folder.
+
+ -- Stuart Howarth <showarth@marxoft.co.uk>  Tue, 03 Jan 2017 23:56:24 +0000
+
+musikloud2 (0.0.4) unstable; urgency=low
+  * UI tweaks.
+  * Register DBus interface (org.marxoft.musikloud2).
+  * Fix crashing when clearing stacked windows.
+
+ -- Stuart Howarth <showarth@marxoft.co.uk>  Thu, 01 Oct 2015 16:25:41 +0000
+
+musikloud2 (0.0.3) unstable; urgency=low
+  * Fix fetching of further results from the SoundCloud API.
+  * Fix unneccessary fetching of further results when loading plugin categories.
+
+ -- Stuart Howarth <showarth@marxoft.co.uk>  Sun, 09 Aug 2015 14:37:15 +0000
+
+musikloud2 (0.0.2) unstable; urgency=low
+  * Enable fetching of more results when retrieving plugin categories.
+  * Better adaptation of the 'Now playing' UI for non-seekable streams.
+
+ -- Stuart Howarth <showarth@marxoft.co.uk>  Mon, 29 Jun 2015 21:11:42 +0000
+
+musikloud2 (0.0.1) unstable; urgency=low
+  * Initial release.
+
+ -- Stuart Howarth <showarth@marxoft.co.uk>  Mon, 29 Jun 2015 01:03:12 +0000

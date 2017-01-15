@@ -41,6 +41,7 @@ public:
         DownloadableRole,
         DurationRole,
         DurationStringRole,
+        ErrorStringRole,
         FavouriteRole,
         FavouriteCountRole,
         GenreRole,
@@ -50,7 +51,7 @@ public:
         SharingRole,
         SizeRole,
         SizeStringRole,
-        StreamableRole,
+        StatusRole,
         ThumbnailUrlRole,
         TitleRole,
         UrlRole,
@@ -67,9 +68,12 @@ public:
     QHash<int, QByteArray> roleNames() const;
 #endif
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
+    int columnCount(const QModelIndex &parent = QModelIndex()) const;
     
     bool canFetchMore(const QModelIndex &parent = QModelIndex()) const;
     Q_INVOKABLE void fetchMore(const QModelIndex &parent = QModelIndex());
+    
+    QVariant headerData(int section, Qt::Orientation orientation = Qt::Horizontal, int role = Qt::DisplayRole) const;
     
     QVariant data(const QModelIndex &index, int role) const;
     QMap<int, QVariant> itemData(const QModelIndex &index) const;
@@ -86,21 +90,22 @@ public Q_SLOTS:
     void cancel();
     void reload();
     
+private Q_SLOTS:
+    void onItemChanged();
+    void onRequestFinished();
+    
+    void onTrackFavourited(SoundCloudTrack *track);
+    void onTrackUnfavourited(SoundCloudTrack *track);
+    
+Q_SIGNALS:
+    void countChanged(int count);
+    void statusChanged(QSoundCloud::ResourcesRequest::Status s);
+    
 private:
     void append(SoundCloudTrack *track);
     void insert(int row, SoundCloudTrack *track);
     void remove(int row);
     
-private Q_SLOTS:
-    void onRequestFinished();
-    void onTrackFavourited(SoundCloudTrack *track);
-    void onTrackUnfavourited(SoundCloudTrack *track);
-    
-Q_SIGNALS:
-    void countChanged(int c);
-    void statusChanged(QSoundCloud::ResourcesRequest::Status s);
-    
-private:
     QSoundCloud::ResourcesRequest *m_request;
     
     QString m_resourcePath;

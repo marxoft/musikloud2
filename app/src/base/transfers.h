@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Stuart Howarth <showarth@marxoft.co.uk>
+ * Copyright (C) 2016 Stuart Howarth <showarth@marxoft.co.uk>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -30,7 +30,6 @@ class Transfers : public QObject
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     
 public:
-    explicit Transfers(QObject *parent = 0);
     ~Transfers();
     
     static Transfers* instance();
@@ -38,8 +37,10 @@ public:
     int active() const;
     int count() const;
     
-    Q_INVOKABLE void addDownloadTransfer(const QString &service, const QString &resourceId, const QString &streamId,
-                                         const QUrl &streamUrl, const QString &title, const QString &category);
+    Q_INVOKABLE void addDownloadTransfer(const QString &service, const QString &trackId, const QString &streamId,
+                                         const QUrl &streamUrl, const QString &title, const QString &category,
+                                         const QString &customCommand = QString(),
+                                         bool customCommandOverrideEnabled = false);
     
     Q_INVOKABLE Transfer* get(int i) const;
     Q_INVOKABLE Transfer* get(const QString &id) const;
@@ -51,8 +52,8 @@ public Q_SLOTS:
     bool pause(const QString &id);
     bool cancel(const QString &id);
     
-    void storeTransfers();
-    void restoreTransfers();
+    void save();
+    void restore();
     
 private:
     void getNextTransfers();
@@ -66,14 +67,16 @@ private Q_SLOTS:
     void startNextTransfers();
     
     void onTransferStatusChanged();
-    void onMaximumConcurrentTransfersChanged();
+    void onMaximumConcurrentTransfersChanged(int maximum);
     
 Q_SIGNALS:
-    void activeChanged(int a);
-    void countChanged(int c);
+    void activeChanged(int active);
+    void countChanged(int count);
     void transferAdded(Transfer *transfer);
     
 private:
+    Transfers();
+    
     static Transfers *self;
         
     QNetworkAccessManager *m_nam;

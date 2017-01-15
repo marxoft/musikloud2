@@ -21,7 +21,7 @@ MKComment::MKComment(QObject *parent) :
 {
 }
 
-MKComment::MKComment(MKComment *comment, QObject *parent) :
+MKComment::MKComment(const MKComment *comment, QObject *parent) :
     QObject(parent),
     m_artist(comment->artist()),
     m_artistId(comment->artistId()),
@@ -30,7 +30,8 @@ MKComment::MKComment(MKComment *comment, QObject *parent) :
     m_id(comment->id()),
     m_service(comment->service()),
     m_thumbnailUrl(comment->thumbnailUrl()),
-    m_trackId(comment->trackId())
+    m_trackId(comment->trackId()),
+    m_url(comment->url())
 {
 }
 
@@ -41,6 +42,7 @@ QString MKComment::artist() const {
 void MKComment::setArtist(const QString &a) {
     if (a != artist()) {
         m_artist = a;
+        emit changed();
         emit artistChanged();
     }
 }
@@ -52,6 +54,7 @@ QString MKComment::artistId() const {
 void MKComment::setArtistId(const QString &i) {
     if (i != artistId()) {
         m_artistId = i;
+        emit changed();
         emit artistIdChanged();
     }
 }
@@ -63,6 +66,7 @@ QString MKComment::body() const {
 void MKComment::setBody(const QString &d) {
     if (d != body()) {
         m_body = d;
+        emit changed();
         emit bodyChanged();
     }
 }
@@ -74,6 +78,7 @@ QString MKComment::date() const {
 void MKComment::setDate(const QString &d) {
     if (d != date()) {
         m_date = d;
+        emit changed();
         emit dateChanged();
     }
 }
@@ -85,6 +90,7 @@ QString MKComment::id() const {
 void MKComment::setId(const QString &i) {
     if (i != id()) {
         m_id = i;
+        emit changed();
         emit idChanged();
     }
 }
@@ -96,6 +102,7 @@ QString MKComment::service() const {
 void MKComment::setService(const QString &s) {
     if (s != service()) {
         m_service = s;
+        emit changed();
         emit serviceChanged();
     }
 }
@@ -107,6 +114,7 @@ QUrl MKComment::thumbnailUrl() const {
 void MKComment::setThumbnailUrl(const QUrl &u) {
     if (u != thumbnailUrl()) {
         m_thumbnailUrl = u;
+        emit changed();
         emit thumbnailUrlChanged();
     }
 }
@@ -118,7 +126,20 @@ QString MKComment::trackId() const {
 void MKComment::setTrackId(const QString &i) {
     if (i != trackId()) {
         m_trackId = i;
+        emit changed();
         emit trackIdChanged();
+    }
+}
+
+QUrl MKComment::url() const {
+    return m_url;
+}
+
+void MKComment::setUrl(const QUrl &u) {
+    if (u != url()) {
+        m_url = u;
+        emit changed();
+        emit urlChanged();
     }
 }
 
@@ -131,4 +152,5 @@ void MKComment::loadComment(MKComment *comment) {
     setService(comment->service());
     setThumbnailUrl(comment->thumbnailUrl());
     setTrackId(comment->trackId());
+    setUrl(comment->url());
 }

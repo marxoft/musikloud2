@@ -15,35 +15,70 @@
  */
 
 #include "pluginartist.h"
+#include "pluginmanager.h"
 #include "resources.h"
 
 PluginArtist::PluginArtist(QObject *parent) :
     MKArtist(parent),
-    m_request(new ResourcesRequest(this))
+    m_request(0)
 {
-    connect(m_request, SIGNAL(finished()), this, SLOT(onRequestFinished()));
 }
 
 PluginArtist::PluginArtist(const QString &service, const QString &id, QObject *parent) :
     MKArtist(parent),
-    m_request(new ResourcesRequest(this))
+    m_request(0)
 {
     loadArtist(service, id);
-    connect(m_request, SIGNAL(finished()), this, SLOT(onRequestFinished()));
 }
 
 PluginArtist::PluginArtist(const QString &service, const QVariantMap &artist, QObject *parent) :
     MKArtist(parent),
-    m_request(new ResourcesRequest(this))
+    m_request(0)
 {
     loadArtist(service, artist);
-    connect(m_request, SIGNAL(finished()), this, SLOT(onRequestFinished()));
 }
 
-PluginArtist::PluginArtist(PluginArtist *artist, QObject *parent) :
+PluginArtist::PluginArtist(const PluginArtist *artist, QObject *parent) :
     MKArtist(artist, parent),
-    m_request(new ResourcesRequest(this))
+    m_request(0),
+    m_actions(artist->actions()),
+    m_playlistsId(artist->playlistsId()),
+    m_tracksId(artist->tracksId())
 {
+}
+
+QVariantList PluginArtist::actions() const {
+    return m_actions;
+}
+
+void PluginArtist::setActions(const QVariantList &a) {
+    m_actions = a;
+    emit changed();
+    emit actionsChanged();
+}
+
+QString PluginArtist::playlistsId() const {
+    return m_playlistsId;
+}
+
+void PluginArtist::setPlaylistsId(const QString &i) {
+    if (i != playlistsId()) {
+        m_playlistsId = i;
+        emit changed();
+        emit playlistsIdChanged();
+    }
+}
+
+QString PluginArtist::tracksId() const {
+    return m_tracksId;
+}
+
+void PluginArtist::setTracksId(const QString &i) {
+    if (i != tracksId()) {
+        m_tracksId = i;
+        emit changed();
+        emit tracksIdChanged();
+    }
 }
 
 QString PluginArtist::errorString() const {
@@ -51,37 +86,124 @@ QString PluginArtist::errorString() const {
 }
 
 ResourcesRequest::Status PluginArtist::status() const {
-    return m_request->status();
+    return m_request ? m_request->status() : ResourcesRequest::Null;
 }
 
 void PluginArtist::loadArtist(const QString &service, const QString &id) {
+    setService(service);
+    setId(id);
+    
     if (status() == ResourcesRequest::Loading) {
         return;
     }
     
-    m_request->setService(service);
-    m_request->get(Resources::ARTIST, id);
-
-    emit statusChanged(status());
+    if (ResourcesRequest *r = request()) {
+        r->get(Resources::ARTIST, id);
+        emit changed();
+        emit statusChanged(status());
+    }
 }
 
 void PluginArtist::loadArtist(const QString &service, const QVariantMap &artist) {
     setService(service);
-    setDescription(artist.value("description").toString());
-    setId(artist.value("id").toString());
-    setLargeThumbnailUrl(artist.value("largeThumbnailUrl").toString());
-    setName(artist.value("name").toString());
-    setThumbnailUrl(artist.value("thumbnailUrl").toString());
+    
+    if (artist.contains("actions")) {
+        setActions(artist.value("actions").toList());
+    }
+    
+    if (artist.contains("description")) {
+        setDescription(artist.value("description").toString());
+    }
+    
+    if (artist.contains("id")) {
+        setId(artist.value("id").toString());
+    }
+    
+    if (artist.contains("largeThumbnailUrl")) {
+        setLargeThumbnailUrl(artist.value("largeThumbnailUrl").toString());
+    }
+    
+    if (artist.contains("name")) {
+        setName(artist.value("name").toString());
+    }
+    
+    if (artist.contains("playlistsId")) {
+        setPlaylistsId(artist.value("playlistsId").toString());
+    }
+    
+    if (artist.contains("thumbnailUrl")) {
+        setThumbnailUrl(artist.value("thumbnailUrl").toString());
+    }
+    
+    if (artist.contains("tracksId")) {
+        setTracksId(artist.value("tracksId").toString());
+    }
+
+    if (artist.contains("url")) {
+        setUrl(artist.value("url").toString());
+    }
 }
 
 void PluginArtist::loadArtist(PluginArtist *artist) {
     MKArtist::loadArtist(artist);
+    setActions(artist->actions());
+    setPlaylistsId(artist->playlistsId());
+    setTracksId(artist->tracksId());
+}
+
+void PluginArtist::cancel() {
+    if (status() == ResourcesRequest::Loading) {
+        m_request->cancel();
+        emit changed();
+        emit statusChanged(status());
+    }
+}
+
+void PluginArtist::del(const QString &resourceType, const QString &resourceId) {
+    if (status() == ResourcesRequest::Loading) {
+        return;
+    }
+    
+    if (ResourcesRequest *r = request()) {
+        r->del(Resources::ARTIST, id(), resourceType, resourceId);
+        emit changed();
+        emit statusChanged(status());
+    }
+}
+
+void PluginArtist::insert(const QString &resourceType, const QString &resourceId) {
+    if (status() == ResourcesRequest::Loading) {
+        return;
+    }
+    
+    if (ResourcesRequest *r = request()) {
+        r->insert(Resources::ARTIST, id(), resourceType, resourceId);
+        emit changed();
+        emit statusChanged(status());
+    }
+}
+
+ResourcesRequest* PluginArtist::request() {
+    if (!m_request) {
+        m_request = PluginManager::instance()->createRequestForService(service(), this);
+
+        if (m_request) {
+            connect(m_request, SIGNAL(finished()), this, SLOT(onRequestFinished()));
+        }
+    }
+
+    return m_request;
 }
 
 void PluginArtist::onRequestFinished() {
     if (m_request->status() == ResourcesRequest::Ready) {
-        loadArtist(m_request->service(), m_request->result().toMap());
+        const QVariantMap result = m_request->result().toMap();
+        
+        if (!result.isEmpty()) {
+            loadArtist(service(), result);
+        }
     }
     
+    emit changed();
     emit statusChanged(status());
 }

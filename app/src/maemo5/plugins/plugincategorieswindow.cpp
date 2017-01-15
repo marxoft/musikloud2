@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Stuart Howarth <showarth@marxoft.co.uk>
+ * Copyright (C) 2016 Stuart Howarth <showarth@marxoft.co.uk>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -15,8 +15,8 @@
  */
 
 #include "plugincategorieswindow.h"
+#include "categorydelegate.h"
 #include "listview.h"
-#include "nowplayingaction.h"
 #include "plugintrackswindow.h"
 #include <QLabel>
 #include <QMessageBox>
@@ -27,16 +27,16 @@
 PluginCategoriesWindow::PluginCategoriesWindow(StackedWindow *parent) :
     StackedWindow(parent),
     m_model(new PluginCategoryModel(this)),
-    m_nowPlayingAction(new NowPlayingAction(this)),
     m_view(new ListView(this)),
     m_reloadAction(new QAction(tr("Reload"), this)),
     m_label(new QLabel(QString("<p align='center'; style='font-size: 40px; color: %1'>%2</p>")
-                              .arg(palette().color(QPalette::Mid).name()).arg(tr("No categories found")), this))
+                              .arg(palette().color(QPalette::Mid).name()).arg(tr("No results")), this))
 {
     setWindowTitle(tr("Categories"));
     setCentralWidget(new QWidget);
     
     m_view->setModel(m_model);
+    m_view->setItemDelegate(new CategoryDelegate(m_view));
 
     m_reloadAction->setEnabled(false);
     
@@ -48,7 +48,6 @@ PluginCategoriesWindow::PluginCategoriesWindow(StackedWindow *parent) :
     m_layout->setContentsMargins(0, 0, 0, 0);
 
     menuBar()->addAction(m_reloadAction);
-    menuBar()->addAction(m_nowPlayingAction);
     
     connect(m_model, SIGNAL(statusChanged(ResourcesRequest::Status)), this,
             SLOT(onModelStatusChanged(ResourcesRequest::Status)));
@@ -64,7 +63,7 @@ void PluginCategoriesWindow::list(const QString &service, const QString &id) {
 void PluginCategoriesWindow::showCategory(const QModelIndex &index) {
     PluginTracksWindow *window = new PluginTracksWindow(this);
     window->setWindowTitle(index.data(PluginCategoryModel::NameRole).toString());
-    window->list(m_model->service(), index.data(PluginCategoryModel::ValueRole).toString());
+    window->list(m_model->service(), index.data(PluginCategoryModel::ValueRole).toMap().value("tracksId").toString());
     window->show();
 }
 

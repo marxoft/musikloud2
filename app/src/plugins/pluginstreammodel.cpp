@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Stuart Howarth <showarth@marxoft.co.uk>
+ * Copyright (C) 2016 Stuart Howarth <showarth@marxoft.co.uk>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -15,60 +15,164 @@
  */
 
 #include "pluginstreammodel.h"
+#include "logger.h"
+#include "pluginmanager.h"
 #include "resources.h"
+#include <qsoundcloud/streamsrequest.h>
 
 PluginStreamModel::PluginStreamModel(QObject *parent) :
     SelectionModel(parent),
-    m_request(new ResourcesRequest(this))
+    m_request(0),
+    m_soundcloudRequest(0),
+    m_status(ResourcesRequest::Null)
 {
-    connect(m_request, SIGNAL(serviceChanged()), this, SIGNAL(serviceChanged()));
-    connect(m_request, SIGNAL(finished()), this, SLOT(onRequestFinished()));
-}
-
-QString PluginStreamModel::service() const {
-    return m_request->service();
-}
-
-void PluginStreamModel::setService(const QString &s) {
-    m_request->setService(s);
 }
 
 QString PluginStreamModel::errorString() const {
-    return m_request->errorString();
+    return m_request ? m_request->errorString() : QString();
+}
+
+void PluginStreamModel::setErrorString(const QString &e) {
+    m_errorString = e;
+}
+
+QString PluginStreamModel::service() const {
+    return m_service;
+}
+
+void PluginStreamModel::setService(const QString &s) {
+    if (s != service()) {
+        m_service = s;
+        emit serviceChanged();
+
+        clear();
+
+        if (m_request) {
+            m_request->deleteLater();
+            m_request = 0;
+        }
+    }
 }
 
 ResourcesRequest::Status PluginStreamModel::status() const {
-    return m_request->status();
+    return m_status;
 }
 
-void PluginStreamModel::list(const QString &id) {
+void PluginStreamModel::setStatus(ResourcesRequest::Status s) {
+    if (s != status()) {
+        m_status = s;
+        emit statusChanged(s);
+    }
+}
+
+void PluginStreamModel::list(const QString &resourceId) {
     if (status() == ResourcesRequest::Loading) {
         return;
     }
     
+    Logger::log("PluginStreamModel::list(). Resource ID: " + resourceId, Logger::MediumVerbosity);
     clear();
-    m_id = id;
-    m_request->list(Resources::STREAM, id);
-    emit statusChanged(status());
+    m_resourceId = resourceId;
+
+    if (ResourcesRequest *r = request()) {
+        r->list(Resources::STREAM, resourceId);
+        setStatus(r->status());
+    }
 }
 
 void PluginStreamModel::cancel() {
-    m_request->cancel();
+    if (m_request) {
+        m_request->cancel();
+    }
 }
 
 void PluginStreamModel::reload() {
+    if (status() == ResourcesRequest::Loading) {
+        return;
+    }
+    
+    Logger::log("PluginStreamModel::reload(). Resource ID: " + m_resourceId, Logger::MediumVerbosity);
     clear();
-    m_request->list(Resources::STREAM, m_id);
-    emit statusChanged(status());
+
+    if (ResourcesRequest *r = request()) {
+        r->list(Resources::STREAM, m_resourceId);
+        setStatus(r->status());
+    }
+}
+
+ResourcesRequest* PluginStreamModel::request() {
+    if (!m_request) {
+        m_request = PluginManager::instance()->createRequestForService(service(), this);
+
+        if (m_request) {
+            connect(m_request, SIGNAL(finished()), this, SLOT(onRequestFinished()));
+        }
+    }
+
+    return m_request;
+}
+
+QSoundCloud::StreamsRequest* PluginStreamModel::soundcloudRequest() {
+    if (!m_soundcloudRequest) {
+        m_soundcloudRequest = new QSoundCloud::StreamsRequest(this);
+        connect(m_soundcloudRequest, SIGNAL(finished()), this, SLOT(onSoundCloudRequestFinished()));
+    }
+    
+    return m_soundcloudRequest;
 }
 
 void PluginStreamModel::onRequestFinished() {
     if (m_request->status() == ResourcesRequest::Ready) {
-        foreach (QVariant v, m_request->result().toMap().value("items").toList()) {
-            QVariantMap stream = v.toMap();
-            append(stream.value("description").toString(), stream);
+        const QVariantMap result = m_request->result().toMap();
+        
+        if (result.contains("items")) {
+            foreach (const QVariant &v, result.value("items").toList()) {
+                const QVariantMap stream = v.toMap();
+                append(stream.value("description").toString(), stream);
+            }
+            
+            setErrorString(QString());
+            setStatus(ResourcesRequest::Ready);
+        }
+        else if (result.contains("service")) {
+            const QString service = result.value("service").toString();
+            
+            if (service == Resources::SOUNDCLOUD) {
+                soundcloudRequest()->get(result.value("id").toString());
+            }
+            else {
+                setErrorString(tr("Attempted redirect to unsupported service '%1'").arg(service));
+                setStatus(ResourcesRequest::Failed);
+                Logger::log("PluginStreamModel::onRequestFinished(). Error: " + errorString());
+            }
+        }
+        else {
+            setErrorString(tr("Unknown error"));
+            setStatus(ResourcesRequest::Failed);
+            Logger::log("PluginStreamModel::onRequestFinished(). Error: " + errorString());
         }
     }
+    else {
+        setErrorString(m_request->errorString());
+        setStatus(ResourcesRequest::Failed);
+        Logger::log("PluginStreamModel::onRequestFinished(). Error: " + errorString());
+    }    
+}
+
+void PluginStreamModel::onSoundCloudRequestFinished() {
+    if (m_soundcloudRequest->status() == QSoundCloud::StreamsRequest::Ready) {
+        foreach (const QVariant &v, m_soundcloudRequest->result().toList()) {
+            const QVariantMap stream = v.toMap();
+            append(stream.value("description").toString(), stream);
+        }
+        
+        setErrorString(QString());
+        setStatus(ResourcesRequest::Ready);
+    }
+    else {
+        setErrorString(m_soundcloudRequest->errorString());
+        setStatus(ResourcesRequest::Failed);
+        Logger::log("PluginStreamModel::onSoundCloudRequestFinished(). Error: " + errorString());
+    }
     
-    emit statusChanged(status());
 }

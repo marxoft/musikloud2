@@ -60,7 +60,7 @@ public Q_SLOTS:
     void reload();
 
 Q_SIGNALS:
-    void countChanged(int c);
+    void countChanged(int count);
 
 private:
     QList<Category> m_list;

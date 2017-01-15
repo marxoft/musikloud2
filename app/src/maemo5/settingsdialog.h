@@ -20,7 +20,7 @@
 #include "dialog.h"
 
 class ConcurrentTransfersModel;
-class PluginSettingsModel;
+class PluginConfigModel;
 class ListView;
 class ValueSelector;
 class QPushButton;
@@ -30,6 +30,7 @@ class QDialogButtonBox;
 class QHBoxLayout;
 class QModelIndex;
 class QScrollArea;
+class QSpinBox;
 
 class SettingsDialog : public Dialog
 {
@@ -46,14 +47,16 @@ private Q_SLOTS:
     
 private:
     ConcurrentTransfersModel *m_transfersModel;
-    PluginSettingsModel *m_pluginModel;
+    PluginConfigModel *m_pluginModel;
     
     ValueSelector *m_transfersSelector;
     ListView *m_pluginView;
     QScrollArea *m_scrollArea;
     QMaemo5ValueButton *m_downloadPathSelector;
+    QCheckBox *m_restoreQueueCheckBox;
     QCheckBox *m_clipboardCheckBox;
     QCheckBox *m_transfersCheckBox;
+    QSpinBox *m_sleepTimerSpinBox;
     QPushButton *m_categoriesButton;
     QPushButton *m_proxyButton;
     QDialogButtonBox *m_buttonBox;

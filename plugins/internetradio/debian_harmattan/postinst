@@ -1,7 +1,0 @@
-#!/bin/sh
-
-set -e
-
-chmod a+x /opt/musikloud2/plugins/internetradio/internetradio.py
-
-exit 0

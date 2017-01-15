@@ -15,12 +15,9 @@
  */
 
 #include "nowplayingaction.h"
+#include "audioplayer.h"
 #include "imagecache.h"
 #include "nowplayingwindow.h"
-#include "utils.h"
-#ifdef MUSIKLOUD_DEBUG
-#include <QDebug>
-#endif
 
 NowPlayingAction::NowPlayingAction(QWidget *parent) :
     QWidgetAction(parent)
@@ -61,18 +58,12 @@ void NowPlayingButton::hideEvent(QHideEvent *e) {
 }
 
 void NowPlayingButton::connectPlaybackSignals() {
-#ifdef MUSIKLOUD_DEBUG
-    qDebug() << "NowPlayingButton::connectPlaybackSignals";
-#endif
-    connect(AudioPlayer::instance(), SIGNAL(currentIndexChanged(int)), this, SLOT(onCurrentIndexChanged(int)));
-    onCurrentIndexChanged(AudioPlayer::instance()->currentIndex());
+    connect(AudioPlayer::instance(), SIGNAL(metaDataChanged()), this, SLOT(onMetaDataChanged()));
+    onMetaDataChanged();
 }
 
 void NowPlayingButton::disconnectPlaybackSignals() {
-#ifdef MUSIKLOUD_DEBUG
-    qDebug() << "NowPlayingButton::disconnectPlaybackSignals";
-#endif
-    disconnect(AudioPlayer::instance(), SIGNAL(currentIndexChanged(int)), this, SLOT(onCurrentIndexChanged(int)));
+    disconnect(AudioPlayer::instance(), SIGNAL(metaDataChanged()), this, SLOT(onMetaDataChanged()));
 }
 
 void NowPlayingButton::showNowPlayingWindow() {
@@ -80,26 +71,22 @@ void NowPlayingButton::showNowPlayingWindow() {
     window->show();
 }
 
-void NowPlayingButton::onCurrentIndexChanged(int index) {
-    if (MKTrack *track = AudioPlayer::instance()->currentTrack()) {
+void NowPlayingButton::onMetaDataChanged() {
+    if (AudioPlayerMetaData::isAvailable()) {
         const int maxWidth = width() - iconSize().width() - 36;
         QFont small = font();
         small.setPointSize(13);
         
-        const QString title = fontMetrics().elidedText(QString("%1/%2 - %3").arg(index + 1)
-                              .arg(AudioPlayer::instance()->queueCount()).arg(track->title().isEmpty()
-                              ? tr("Unknown title") : track->title()), Qt::ElideRight, maxWidth);
+        const QString title = fontMetrics().elidedText(QString("%1/%2 - %3")
+                                                       .arg(AudioPlayer::instance()->currentIndex() + 1)
+                                                       .arg(AudioPlayer::instance()->queueCount())
+                                                       .arg(AudioPlayerMetaData::title()), Qt::ElideRight,
+                                                       maxWidth);
                               
-        const QString artist = QFontMetrics(small).elidedText(track->artist().isEmpty()
-                               ? tr("Unknown artist") : track->artist(), Qt::ElideRight, maxWidth);
-        
-        QUrl thumbnailUrl = track->thumbnailUrl();
-        
-        if (thumbnailUrl.isEmpty()) {
-            thumbnailUrl = Utils::findThumbnailUrl(track->url());
-        }
-                               
-        const QImage thumbnail = m_cache->image(thumbnailUrl, iconSize());
+        const QString artist = QFontMetrics(small).elidedText(AudioPlayerMetaData::artist(), Qt::ElideRight,
+                                                              maxWidth);
+                 
+        const QImage thumbnail = m_cache->image(AudioPlayerMetaData::thumbnailUrl(), iconSize());
     
         if (!thumbnail.isNull()) {
             setIcon(QIcon(QPixmap::fromImage(thumbnail)));
@@ -114,20 +101,12 @@ void NowPlayingButton::onCurrentIndexChanged(int index) {
 }
 
 void NowPlayingButton::onImageReady() {
-    if (MKTrack *track = AudioPlayer::instance()->currentTrack()) {
-        QUrl thumbnailUrl = track->thumbnailUrl();
-        
-        if (thumbnailUrl.isEmpty()) {
-            thumbnailUrl = Utils::findThumbnailUrl(track->url());
-        }
-        
-        const QImage thumbnail = m_cache->image(thumbnailUrl, iconSize());
+    const QImage thumbnail = m_cache->image(AudioPlayerMetaData::thumbnailUrl(), iconSize());
     
-        if (!thumbnail.isNull()) {
-            setIcon(QIcon(QPixmap::fromImage(thumbnail)));
-            return;
-        }
+    if (!thumbnail.isNull()) {
+        setIcon(QIcon(QPixmap::fromImage(thumbnail)));
     }
-    
-    setIcon(QIcon::fromTheme("mediaplayer_default_album"));
+    else {
+        setIcon(QIcon::fromTheme("mediaplayer_default_album"));
+    }
 }

@@ -1,0 +1,45 @@
+{
+    "type": "js",
+    "version": 2,
+    "name": "Mixcloud",
+    "resources": [
+        {
+            "method": "list",
+            "type": "track",
+            "label": "Popular cloudcasts",
+            "id": "/popular/"
+        },
+        
+        {
+            "method": "list",
+            "type": "track",
+            "label": "New cloudcasts",
+            "id": "/new/"
+        },
+        
+        {
+            "method": "list",
+            "type": "category",
+            "label": "Categories",
+            "id": "/categories/"
+        },
+        
+        {
+            "method": "search",
+            "type": "track",
+            "label": "Cloudcasts"
+        },
+        
+        {
+            "method": "get",
+            "type": "track",
+            "regExp": "http(s|)://(www|api)\\.mixcloud\\.com/\\w+/[\\w-]+(/|)$"
+        },
+        
+        {
+            "method": "get",
+            "type": "artist",
+            "regExp": "http(s|)://(www|api)\\.mixcloud\\.com/\\w+(/|)$"
+        }
+    ]
+}

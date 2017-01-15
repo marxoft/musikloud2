@@ -32,6 +32,7 @@ class SoundCloudArtistModel : public QAbstractListModel
 public:
     enum Roles {
         DescriptionRole = Qt::UserRole + 1,
+        ErrorStringRole,
         FollowedRole,
         FollowersCountRole,
         IdRole,
@@ -39,8 +40,10 @@ public:
         NameRole,
         OnlineRole,
         PlaylistCountRole,
+        StatusRole,
         ThumbnailUrlRole,
         TrackCountRole,
+        UrlRole,
         WebsiteTitleRole,
         WebsiteUrlRole
     };
@@ -55,12 +58,15 @@ public:
     QHash<int, QByteArray> roleNames() const;
 #endif
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
+    int columnCount(const QModelIndex &parent = QModelIndex()) const;
     
     bool canFetchMore(const QModelIndex &parent = QModelIndex()) const;
     Q_INVOKABLE void fetchMore(const QModelIndex &parent = QModelIndex());
     
     QVariant data(const QModelIndex &index, int role) const;
     QMap<int, QVariant> itemData(const QModelIndex &index) const;
+    
+    QVariant headerData(int section, Qt::Orientation orientation = Qt::Horizontal, int role = Qt::DisplayRole) const;
     
     Q_INVOKABLE QVariant data(int row, const QByteArray &role) const;
     Q_INVOKABLE QVariantMap itemData(int row) const;
@@ -80,13 +86,14 @@ private:
     void remove(int row);
     
 private Q_SLOTS:
+    void onItemChanged();
     void onRequestFinished();
     
     void onArtistFollowed(SoundCloudArtist *artist);
     void onArtistUnfollowed(SoundCloudArtist *artist);
     
 Q_SIGNALS:
-    void countChanged(int c);
+    void countChanged(int count);
     void statusChanged(QSoundCloud::ResourcesRequest::Status s);
     
 private:

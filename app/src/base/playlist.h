@@ -37,14 +37,15 @@ class MKPlaylist : public QObject
     Q_PROPERTY(QString service READ service NOTIFY serviceChanged)
     Q_PROPERTY(QString title READ title NOTIFY titleChanged)
     Q_PROPERTY(int trackCount READ trackCount NOTIFY trackCountChanged)
+    Q_PROPERTY(QUrl url READ url NOTIFY urlChanged)
     
 public:
     explicit MKPlaylist(QObject *parent = 0);
-    explicit MKPlaylist(MKPlaylist *playlist, QObject *parent = 0);
+    explicit MKPlaylist(const MKPlaylist *playlist, QObject *parent = 0);
     
     QString artist() const;
     QString artistId() const;
-        
+    
     QString date() const;
     
     QString description() const;
@@ -64,6 +65,8 @@ public:
     QString title() const;
             
     int trackCount() const;
+
+    QUrl url() const;
     
     Q_INVOKABLE virtual void loadPlaylist(MKPlaylist *playlist);
     
@@ -91,10 +94,13 @@ protected:
         
     void setTrackCount(int c);
 
+    void setUrl(const QUrl &u);
     
 Q_SIGNALS:
     void artistChanged();
     void artistIdChanged();
+    
+    void changed();
     
     void dateChanged();
     
@@ -115,7 +121,9 @@ Q_SIGNALS:
     
     void trackCountChanged();
 
-protected:
+    void urlChanged();
+
+private:
     QString m_artist;
     QString m_artistId;
     
@@ -137,7 +145,9 @@ protected:
     
     QString m_title;
     
-    int m_trackCount;    
+    int m_trackCount;
+
+    QUrl m_url;
 };
 
 #endif // MKPLAYLIST_H

@@ -19,7 +19,6 @@
 #include "imagecache.h"
 #include "listview.h"
 #include "nowplayingaction.h"
-#include "settings.h"
 #include "soundcloudartistwindow.h"
 #include <QLabel>
 #include <QActionGroup>
@@ -35,7 +34,7 @@ SoundCloudArtistsWindow::SoundCloudArtistsWindow(StackedWindow *parent) :
     m_view(new ListView(this)),
     m_reloadAction(new QAction(tr("Reload"), this)),
     m_label(new QLabel(QString("<p align='center'; style='font-size: 40px; color: %1'>%2</p>")
-                              .arg(palette().color(QPalette::Mid).name()).arg(tr("No artists found")), this))
+                              .arg(palette().color(QPalette::Mid).name()).arg(tr("No results")), this))
 {
     setWindowTitle(tr("Artists"));
     setCentralWidget(new QWidget);

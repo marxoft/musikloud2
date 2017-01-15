@@ -18,7 +18,6 @@
 #include "drawing.h"
 #include "imagecache.h"
 #include <QPainter>
-#include <QUrl>
 #include <QApplication>
 #include <QMouseEvent>
 
@@ -40,8 +39,8 @@ bool CommentDelegate::editorEvent(QEvent *event, QAbstractItemModel *, const QSt
         QMouseEvent *mouse = static_cast<QMouseEvent*>(event);
 
         QRect imageRect = option.rect;
-        imageRect.setLeft(imageRect.left() + 24);
-        imageRect.setTop(imageRect.top() + 16);
+        imageRect.setLeft(imageRect.left() + 8);
+        imageRect.setTop(imageRect.top() + 8);
         imageRect.setWidth(40);
         imageRect.setHeight(40);
 
@@ -55,8 +54,8 @@ bool CommentDelegate::editorEvent(QEvent *event, QAbstractItemModel *, const QSt
             QMouseEvent *mouse = static_cast<QMouseEvent*>(event);
 
             QRect imageRect = option.rect;
-            imageRect.setLeft(imageRect.left() + 24);
-            imageRect.setTop(imageRect.top() + 16);
+            imageRect.setLeft(imageRect.left() + 8);
+            imageRect.setTop(imageRect.top() + 8);
             imageRect.setWidth(40);
             imageRect.setHeight(40);
 
@@ -75,36 +74,31 @@ bool CommentDelegate::editorEvent(QEvent *event, QAbstractItemModel *, const QSt
 
 void CommentDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
                                   const QModelIndex &index) const {
-    QPixmap background("/etc/hildon/theme/images/ContactsAppletBubble.png");
-    
-    if (!background.isNull()) {
-        qDrawBorderPixmap(painter, option.rect, QMargins(30, 60, 30, 30), background);
-    }
+        
+    QRect imageRect = option.rect;
+    imageRect.setLeft(imageRect.left() + 8);
+    imageRect.setTop(imageRect.top() + 8);
+    imageRect.setWidth(40);
+    imageRect.setHeight(40);
     
     QImage image = m_cache->image(index.data(m_thumbnailRole).toString(), QSize(40, 40));
     
     if (image.isNull()) {
-        image = QImage("/usr/share/icons/hicolor/48x48/hildon/general_default_avatar.png");
+        image = QImage("/usr/share/icons/hicolor/48x48/hildon/general_default_avatar.png")
+            .scaled(40, 40, Qt::KeepAspectRatio, Qt::SmoothTransformation);
     }
-    
-    QRect imageRect = option.rect;
-    imageRect.setLeft(imageRect.left() + 24);
-    imageRect.setTop(imageRect.top() + 16);
-    imageRect.setWidth(40);
-    imageRect.setHeight(40);
     
     drawCenteredImage(painter, imageRect, image);
     
     QRect textRect = option.rect;
     textRect.setLeft(imageRect.right() + 8);
-    textRect.setRight(textRect.right() - 16);
-    textRect.setTop(textRect.top() + 16);
+    textRect.setRight(textRect.right() - 8);
+    textRect.setTop(textRect.top() + 8);
     textRect.setHeight(40);
     
+    painter->save();
     QFont font;
     font.setPointSize(13);
-    
-    painter->save();
     painter->setFont(font);
     painter->setPen(QApplication::palette().color(QPalette::Mid));
     painter->drawText(textRect, Qt::AlignVCenter | Qt::TextWordWrap,
@@ -113,19 +107,18 @@ void CommentDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
     
     textRect = option.rect;
     textRect.setLeft(imageRect.left());
-    textRect.setRight(textRect.right() - 16);
+    textRect.setRight(textRect.right() - 8);
     textRect.setTop(imageRect.bottom() + 8);
-    textRect.setBottom(textRect.bottom() - 16);
+    textRect.setBottom(textRect.bottom() - 8);
     
-    painter->setPen(QApplication::palette().color(background.isNull() ? QPalette::Text : QPalette::Dark));
-    painter->drawText(textRect, Qt::TextWordWrap, index.data(m_bodyRole).toString());
     painter->restore();
+    painter->drawText(textRect, Qt::TextWordWrap, index.data(m_bodyRole).toString());
 }
 
 QSize CommentDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const {
-    return QSize(option.rect.width(), option.fontMetrics.boundingRect(QRect(option.rect.left() + 72,
-                                                                            option.rect.top() + 64,
-                                                                            option.rect.width() - 40,
+    return QSize(option.rect.width(), option.fontMetrics.boundingRect(QRect(option.rect.left() + 8,
+                                                                            option.rect.top() + 56,
+                                                                            option.rect.width() - 16,
                                                                             1000),
-                 Qt::TextWordWrap, index.data(m_bodyRole).toString()).height() + 80);
+                 Qt::TextWordWrap, index.data(m_bodyRole).toString()).height() + 64);
 }

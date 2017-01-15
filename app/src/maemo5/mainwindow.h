@@ -33,7 +33,6 @@ class MainWindow : public StackedWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(StackedWindow *parent = 0);
     ~MainWindow();
     
     static MainWindow* instance();
@@ -45,7 +44,9 @@ public Q_SLOTS:
     
 private Q_SLOTS:
     void playFolder();
+    void playUrl();
     void queueFolder();
+    void queueUrl();
     
     void setService(const QVariant &service);
     
@@ -58,14 +59,18 @@ private Q_SLOTS:
     void onTransferAdded(Transfer *transfer);
         
 private:
+    MainWindow();
+    
     static MainWindow *self;
     
     ServiceModel *m_serviceModel;
     
     ValueSelectorAction *m_serviceAction;
     NowPlayingAction *m_nowPlayingAction;
-    QAction *m_queueAction;
-    QAction *m_playAction;
+    QAction *m_playFolderAction;
+    QAction *m_queueFolderAction;
+    QAction *m_playUrlAction;
+    QAction *m_queueUrlAction;
     QAction *m_transfersAction;
     QAction *m_settingsAction;
     QAction *m_aboutAction;

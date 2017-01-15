@@ -35,9 +35,12 @@ public:
         ArtistIdRole,
         BodyRole,
         DateRole,
+        ErrorStringRole,
         IdRole,
+        StatusRole,
         ThumbnailUrlRole,
-        TrackIdRole
+        TrackIdRole,
+        UrlRole
     };
     
     explicit SoundCloudCommentModel(QObject *parent = 0);
@@ -50,9 +53,12 @@ public:
     QHash<int, QByteArray> roleNames() const;
 #endif
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
+    int columnCount(const QModelIndex &parent = QModelIndex()) const;
     
     bool canFetchMore(const QModelIndex &parent = QModelIndex()) const;
     Q_INVOKABLE void fetchMore(const QModelIndex &parent = QModelIndex());
+    
+    QVariant headerData(int section, Qt::Orientation orientation = Qt::Horizontal, int role = Qt::DisplayRole) const;
     
     QVariant data(const QModelIndex &index, int role) const;
     QMap<int, QVariant> itemData(const QModelIndex &index) const;
@@ -69,21 +75,21 @@ public Q_SLOTS:
     void cancel();
     void reload();
     
-private:
-    void append(SoundCloudComment *comment);
-    void insert(int row, SoundCloudComment *comment);
-    void remove(int row);
-    
 private Q_SLOTS:
+    void onItemChanged();
     void onRequestFinished();
     
     void onCommentAdded(SoundCloudComment *comment);
     
 Q_SIGNALS:
-    void countChanged(int c);
+    void countChanged(int count);
     void statusChanged(QSoundCloud::ResourcesRequest::Status s);
     
 private:
+    void append(SoundCloudComment *comment);
+    void insert(int row, SoundCloudComment *comment);
+    void remove(int row);
+    
     QSoundCloud::ResourcesRequest *m_request;
     
     QString m_resourcePath;

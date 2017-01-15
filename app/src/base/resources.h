@@ -18,20 +18,55 @@
 #define RESOURCES_H
 
 #include <QObject>
+#include <QRegExp>
 #include <QVariantMap>
+
+class GetResource : public QVariantMap
+{
+
+public:
+    explicit GetResource(const QVariantMap &map);
+    explicit GetResource(const QString &type, const QRegExp &regExp);
+
+    QRegExp regExp() const;
+    void setRegExp(const QRegExp &regExp);
+
+    QString type() const;
+    void setType(const QString &type);
+};
 
 class ListResource : public QVariantMap
 {
 
 public:
-    ListResource(const QString &name, const QString &type, const QString &id);
+    explicit ListResource(const QVariantMap &map);
+    explicit ListResource(const QString &label, const QString &type, const QString &id);
+
+    QString id() const;
+    void setId(const QString &id);
+
+    QString label() const;
+    void setLabel(const QString &label);
+
+    QString type() const;
+    void setType(const QString &type);
 };
 
 class SearchResource : public QVariantMap
 {
 
 public:
-    SearchResource(const QString &name, const QString &type, const QString &order);
+    explicit SearchResource(const QVariantMap &map);
+    explicit SearchResource(const QString &label, const QString &type, const QString &order);
+
+    QString label() const;
+    void setLabel(const QString &label);
+
+    QString order() const;
+    void setOrder(const QString &order);
+
+    QString type() const;
+    void setType(const QString &type);
 };
 
 class Resources : public QObject
@@ -46,7 +81,7 @@ class Resources : public QObject
     Q_PROPERTY(QString PLAYLIST READ playlistConstant CONSTANT)
     Q_PROPERTY(QString STREAM READ streamConstant CONSTANT)
     Q_PROPERTY(QString TRACK READ trackConstant CONSTANT)
-        
+    
 public:
     explicit Resources(QObject *parent = 0);
     
@@ -68,7 +103,7 @@ public:
     static QString streamConstant();
     static QString trackConstant();
     
-    Q_INVOKABLE static QVariantMap getResourceFromUrl(QString url);    
+    Q_INVOKABLE static QVariantMap getResourceFromUrl(QString url);
 };
 
 #endif // RESOURCES_H

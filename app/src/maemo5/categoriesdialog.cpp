@@ -30,7 +30,7 @@ CategoriesDialog::CategoriesDialog(QWidget *parent) :
     m_view(new QTreeView(this))
 {
     setWindowTitle(tr("Categories"));
-    setMinimumHeight(340);
+    setMinimumHeight(360);
 
     QDialogButtonBox *buttonBox = new QDialogButtonBox(Qt::Vertical, this);
     QPushButton *addButton = buttonBox->addButton(tr("New"), QDialogButtonBox::ActionRole);
@@ -56,11 +56,11 @@ CategoriesDialog::CategoriesDialog(QWidget *parent) :
 }
 
 void CategoriesDialog::editCategory(const QModelIndex &index) {
-    NewCategoryDialog *dialog = new NewCategoryDialog(this);
-    dialog->setWindowTitle(tr("Edit category"));
-    dialog->setName(index.data(CategoryModel::NameRole).toString());
-    dialog->setPath(index.data(CategoryModel::PathRole).toString());
-    dialog->open();
+    NewCategoryDialog dialog(this);
+    dialog.setWindowTitle(tr("Edit category"));
+    dialog.setName(index.data(CategoryModel::NameRole).toString());
+    dialog.setPath(index.data(CategoryModel::PathRole).toString());
+    dialog.exec();
 }
 
 void CategoriesDialog::removeCategory() {
@@ -70,6 +70,5 @@ void CategoriesDialog::removeCategory() {
 }
 
 void CategoriesDialog::showNewCategoryDialog() {
-    NewCategoryDialog *dialog = new NewCategoryDialog(this);
-    dialog->open();
+    NewCategoryDialog(this).exec();
 }

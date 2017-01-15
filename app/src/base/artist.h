@@ -29,38 +29,45 @@ class MKArtist : public QObject
     Q_PROPERTY(QUrl largeThumbnailUrl READ largeThumbnailUrl NOTIFY largeThumbnailUrlChanged)
     Q_PROPERTY(QUrl thumbnailUrl READ thumbnailUrl NOTIFY thumbnailUrlChanged)
     Q_PROPERTY(QString name READ name NOTIFY nameChanged)
-    Q_PROPERTY(QString service READ service NOTIFY serviceChanged)    
+    Q_PROPERTY(QString service READ service NOTIFY serviceChanged)
+    Q_PROPERTY(QUrl url READ url NOTIFY urlChanged)
     
 public:
     explicit MKArtist(QObject *parent = 0);
-    explicit MKArtist(MKArtist *artist, QObject *parent = 0);
-            
+    explicit MKArtist(const MKArtist *artist, QObject *parent = 0);
+    
     QString description() const;
-            
+    
     QString id() const;
     
     QUrl largeThumbnailUrl() const;
     QUrl thumbnailUrl() const;
-            
+    
     QString name() const;
-            
-    QString service() const;    
+    
+    QString service() const;
+
+    QUrl url() const;
     
     Q_INVOKABLE virtual void loadArtist(MKArtist *artist);
-    
-protected:    
+
+protected:
     void setDescription(const QString &d);
-        
+    
     void setId(const QString &i);
     
     void setLargeThumbnailUrl(const QUrl &u);
     void setThumbnailUrl(const QUrl &u);
-            
+    
     void setName(const QString &u);
     
     void setService(const QString &s);
-    
+
+    void setUrl(const QUrl &u);
+
 Q_SIGNALS:
+    void changed();
+    
     void descriptionChanged();
     
     void idChanged();
@@ -72,7 +79,9 @@ Q_SIGNALS:
     
     void serviceChanged();
 
-protected:
+    void urlChanged();
+
+private:    
     QString m_description;
     
     QString m_id;
@@ -83,6 +92,8 @@ protected:
     QString m_name;
     
     QString m_service;
+
+    QUrl m_url;
 };
 
 #endif // MKARTIST_H

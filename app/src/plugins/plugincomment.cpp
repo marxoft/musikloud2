@@ -15,75 +15,167 @@
  */
 
 #include "plugincomment.h"
+#include "pluginmanager.h"
 #include "resources.h"
 
 PluginComment::PluginComment(QObject *parent) :
     MKComment(parent),
-    m_request(new ResourcesRequest(this))
+    m_request(0)
 {
-    connect(m_request, SIGNAL(finished()), this, SLOT(onRequestFinished()));
 }
 
 PluginComment::PluginComment(const QString &service, const QString &id, QObject *parent) :
     MKComment(parent),
-    m_request(new ResourcesRequest(this))
+    m_request(0)
 {
     loadComment(service, id);
-    connect(m_request, SIGNAL(finished()), this, SLOT(onRequestFinished()));
 }
 
 PluginComment::PluginComment(const QString &service, const QVariantMap &comment, QObject *parent) :
     MKComment(parent),
-    m_request(new ResourcesRequest(this))
+    m_request(0)
 {
     loadComment(service, comment);
-    connect(m_request, SIGNAL(finished()), this, SLOT(onRequestFinished()));
 }
 
-PluginComment::PluginComment(PluginComment *comment, QObject *parent) :
+PluginComment::PluginComment(const PluginComment *comment, QObject *parent) :
     MKComment(comment, parent),
-    m_request(new ResourcesRequest(this))
+    m_request(0),
+    m_actions(comment->actions())
 {
+}
+
+QVariantList PluginComment::actions() const {
+    return m_actions;
+}
+
+void PluginComment::setActions(const QVariantList &a) {
+    m_actions = a;
+    emit changed();
+    emit actionsChanged();
 }
 
 QString PluginComment::errorString() const {
-    return m_request->errorString();
+    return m_request ? m_request->errorString() : QString();
 }
 
 ResourcesRequest::Status PluginComment::status() const {
-    return m_request->status();
+    return m_request ? m_request->status() : ResourcesRequest::Null;
 }
 
 void PluginComment::loadComment(const QString &service, const QString &id) {
+    setService(service);
+    setId(id);
+    
     if (status() == ResourcesRequest::Loading) {
         return;
     }
-    
-    m_request->setService(service);
-    m_request->get(Resources::COMMENT, id);
 
-    emit statusChanged(status());
+    if (ResourcesRequest *r = request()) {
+        r->get(Resources::COMMENT, id);
+        emit changed();
+        emit statusChanged(status());
+    }
 }
 
 void PluginComment::loadComment(const QString &service, const QVariantMap &comment) {
     setService(service);
-    setArtist(comment.value("artist").toString());
-    setArtistId(comment.value("artistId").toString());
-    setBody(comment.value("body").toString());
-    setDate(comment.value("date").toString());
-    setId(comment.value("id").toString());
-    setThumbnailUrl(comment.value("thumbnailUrl").toString());
-    setTrackId(comment.value("trackId").toString());
+    
+    if (comment.contains("actions")) {
+        setActions(comment.value("actions").toList());
+    }
+    
+    if (comment.contains("artist")) {
+        setArtist(comment.value("artist").toString());
+    }
+    
+    if (comment.contains("artistId")) {
+        setArtistId(comment.value("artistId").toString());
+    }
+    
+    if (comment.contains("body")) {
+        setBody(comment.value("body").toString());
+    }
+    
+    if (comment.contains("date")) {
+        setDate(comment.value("date").toString());
+    }
+    
+    if (comment.contains("id")) {
+        setId(comment.value("id").toString());
+    }
+    
+    if (comment.contains("thumbnailUrl")) {
+        setThumbnailUrl(comment.value("thumbnailUrl").toString());
+    }
+    
+    if (comment.contains("trackId")) {
+        setTrackId(comment.value("trackId").toString());
+    }
+
+    if (comment.contains("url")) {
+        setUrl(comment.value("url").toString());
+    }
 }
 
 void PluginComment::loadComment(PluginComment *comment) {
     MKComment::loadComment(comment);
+    setActions(comment->actions());
+}
+
+void PluginComment::cancel() {
+    if (status() == ResourcesRequest::Loading) {
+        m_request->cancel();
+        emit changed();
+        emit statusChanged(status());
+    }
+}
+
+void PluginComment::del(const QString &resourceType, const QString &resourceId) {
+    if (status() == ResourcesRequest::Loading) {
+        return;
+    }
+    
+    if (ResourcesRequest *r = request()) {
+        r->del(Resources::COMMENT, id(), resourceType, resourceId);
+        emit changed();
+        emit statusChanged(status());
+    }
+}
+
+void PluginComment::insert(const QString &resourceType, const QString &resourceId) {
+    if (status() == ResourcesRequest::Loading) {
+        return;
+    }
+    
+    if (ResourcesRequest *r = request()) {
+        r->insert(Resources::COMMENT, id(), resourceType, resourceId);
+        emit changed();
+        emit statusChanged(status());
+    }
+}
+
+ResourcesRequest* PluginComment::request() {
+    if (!m_request) {
+        m_request = PluginManager::instance()->createRequestForService(service(), this);
+
+        if (m_request) {
+            connect(m_request, SIGNAL(finished()), this, SLOT(onRequestFinished()));
+        }
+    }
+
+    return m_request;
 }
 
 void PluginComment::onRequestFinished() {
     if (m_request->status() == ResourcesRequest::Ready) {
-        loadComment(m_request->service(), m_request->result().toMap());
+        const QVariantMap result = m_request->result().toMap();
+        
+        if (!result.isEmpty()) {
+            loadComment(service(), result);
+        }
     }
     
+    emit changed();
     emit statusChanged(status());
 }

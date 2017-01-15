@@ -20,7 +20,6 @@
 #include <QDesktopServices>
 #include <QUrl>
 #include <QLabel>
-#include <QDialogButtonBox>
 #include <QPushButton>
 #include <QGridLayout>
 
@@ -37,25 +36,14 @@ AboutDialog::AboutDialog(QWidget *parent) :
     QLabel *descriptionLabel = new QLabel("A SoundCloud client and music player that can be extended via plugins.\
     <br><br>&copy; Stuart Howarth 2015", this);
     descriptionLabel->setWordWrap(true);
-    QDialogButtonBox *buttonBox = new QDialogButtonBox(Qt::Vertical, this);
-    QPushButton *donateButton = new QPushButton(tr("Donate"), this);
     QPushButton *bugButton = new QPushButton(tr("Report bug"), this);
-    buttonBox->addButton(donateButton, QDialogButtonBox::ActionRole);
-    buttonBox->addButton(bugButton, QDialogButtonBox::ActionRole);
-
     QGridLayout *grid = new QGridLayout(this);
     grid->addWidget(imageLabel, 0, 0);
     grid->addWidget(titleLabel, 0, 1);
     grid->addWidget(descriptionLabel, 1, 0, 1, 2);
-    grid->addWidget(buttonBox, 1, 2);
+    grid->addWidget(bugButton, 1, 2, Qt::AlignBottom);
 
-    connect(donateButton, SIGNAL(clicked()), this, SLOT(donate()));
     connect(bugButton, SIGNAL(clicked()), this, SLOT(reportBug()));
-}
-
-void AboutDialog::donate() {
-    QDesktopServices::openUrl(QUrl("https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=stuhowarth77@gmail.com&lc=GB&item_name=MusiKloud2&currency_code=USD&bn=PP%2dDonationsBF%3abtn_donate_SM%2egif%3aNonHosted"));
-    accept();
 }
 
 void AboutDialog::reportBug() {

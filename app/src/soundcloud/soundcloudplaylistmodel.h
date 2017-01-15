@@ -37,13 +37,16 @@ public:
         DescriptionRole,
         DurationRole,
         DurationStringRole,
+        ErrorStringRole,
         GenreRole,
         IdRole,
         LargeThumbnailUrlRole,
         SharingRole,
+        StatusRole,
         ThumbnailUrlRole,
         TitleRole,
-        TrackCountRole
+        TrackCountRole,
+        UrlRole
     };
     
     explicit SoundCloudPlaylistModel(QObject *parent = 0);
@@ -56,9 +59,12 @@ public:
     QHash<int, QByteArray> roleNames() const;
 #endif
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
+    int columnCount(const QModelIndex &parent = QModelIndex()) const;
     
     bool canFetchMore(const QModelIndex &parent = QModelIndex()) const;
     Q_INVOKABLE void fetchMore(const QModelIndex &parent = QModelIndex());
+    
+    QVariant headerData(int section, Qt::Orientation orientation = Qt::Horizontal, int role = Qt::DisplayRole) const;
     
     QVariant data(const QModelIndex &index, int role) const;
     QMap<int, QVariant> itemData(const QModelIndex &index) const;
@@ -75,19 +81,19 @@ public Q_SLOTS:
     void cancel();
     void reload();
     
+private Q_SLOTS:
+    void onItemChanged();
+    void onRequestFinished();
+    
+Q_SIGNALS:
+    void countChanged(int count);
+    void statusChanged(QSoundCloud::ResourcesRequest::Status s);
+    
 private:
     void append(SoundCloudPlaylist *playlist);
     void insert(int row, SoundCloudPlaylist *playlist);
     void remove(int row);
     
-private Q_SLOTS:
-    void onRequestFinished();
-    
-Q_SIGNALS:
-    void countChanged(int c);
-    void statusChanged(QSoundCloud::ResourcesRequest::Status s);
-    
-private:
     QSoundCloud::ResourcesRequest *m_request;
     
     QString m_resourcePath;

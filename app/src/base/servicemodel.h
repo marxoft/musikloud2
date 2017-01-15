@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Stuart Howarth <showarth@marxoft.co.uk>
+ * Copyright (C) 2016 Stuart Howarth <showarth@marxoft.co.uk>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -18,8 +18,8 @@
 #define SERVICEMODEL_H
 
 #include "selectionmodel.h"
+#include "pluginmanager.h"
 #include "resources.h"
-#include "resourcesplugins.h"
 
 class ServiceModel : public SelectionModel
 {
@@ -30,6 +30,7 @@ public:
         SelectionModel(parent)
     {
         reload();
+        connect(PluginManager::instance(), SIGNAL(loaded(int)), this, SLOT(reload()));
     }
 
 public Q_SLOTS:
@@ -37,9 +38,9 @@ public Q_SLOTS:
         clear();
 
         append("SoundCloud", Resources::SOUNDCLOUD);
-
-        foreach (QString name, ResourcesPlugins::instance()->pluginNames()) {
-            append(name, name);
+        
+        foreach (const ServicePluginPair &pair, PluginManager::instance()->plugins()) {
+            append(pair.config->displayName(), pair.config->id());
         }
     }
 };

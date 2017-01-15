@@ -43,7 +43,7 @@ SoundCloudPlaylist::SoundCloudPlaylist(const QVariantMap &playlist, QObject *par
     loadPlaylist(playlist);
 }
 
-SoundCloudPlaylist::SoundCloudPlaylist(SoundCloudPlaylist *playlist, QObject *parent) :
+SoundCloudPlaylist::SoundCloudPlaylist(const SoundCloudPlaylist *playlist, QObject *parent) :
     MKPlaylist(playlist, parent),
     m_request(0),
     m_sharing(playlist->sharing())
@@ -61,6 +61,7 @@ QString SoundCloudPlaylist::sharing() const {
 void SoundCloudPlaylist::setSharing(const QString &s) {
     if (s != sharing()) {
         m_sharing = s;
+        emit changed();
         emit sharingChanged();
     }
 }
@@ -74,6 +75,7 @@ void SoundCloudPlaylist::loadPlaylist(const QString &id) {
         return;
     }
     
+    setId(id);
     initRequest();
     
     if (id.startsWith("http")) {
@@ -86,11 +88,12 @@ void SoundCloudPlaylist::loadPlaylist(const QString &id) {
     }
     
     connect(m_request, SIGNAL(finished()), this, SLOT(onPlaylistRequestFinished()));
+    emit changed();
     emit statusChanged(status());
 }
 
 void SoundCloudPlaylist::loadPlaylist(const QVariantMap &playlist) {
-    QVariantMap user = playlist.value("user").toMap();
+    const QVariantMap user = playlist.value("user").toMap();
     const QString thumbnail = playlist.value("artwork_url").toString();
     
     setArtist(user.value("username").toString());
@@ -101,11 +104,19 @@ void SoundCloudPlaylist::loadPlaylist(const QVariantMap &playlist) {
     setDuration(playlist.value("duration").toLongLong());
     setGenre(playlist.value("genre").toString());
     setId(playlist.value("id").toString());
-    setLargeThumbnailUrl(QString("%1-t%2x%2.jpg").arg(thumbnail.left(thumbnail.lastIndexOf('-'))).arg(LARGE_THUMBNAIL_SIZE));
     setSharing(playlist.value("sharing").toString());
-    setThumbnailUrl(thumbnail);
     setTitle(playlist.value("title").toString());
-    setTrackCount(playlist.value("track_count").toInt());    
+    setTrackCount(playlist.value("track_count").toInt());
+    setUrl(playlist.value("url").toString());
+
+    if (!thumbnail.isEmpty()) {
+        setLargeThumbnailUrl(QString("%1-t%2x%2.jpg").arg(thumbnail.left(thumbnail.lastIndexOf('-'))).arg(LARGE_THUMBNAIL_SIZE));
+        setThumbnailUrl(QString("%1-t%2x%2.jpg").arg(thumbnail.left(thumbnail.lastIndexOf('-'))).arg(THUMBNAIL_SIZE));
+    }
+    else {
+        setLargeThumbnailUrl(QString());
+        setThumbnailUrl(QString());
+    }
 }
 
 void SoundCloudPlaylist::loadPlaylist(SoundCloudPlaylist *playlist) {
@@ -113,13 +124,21 @@ void SoundCloudPlaylist::loadPlaylist(SoundCloudPlaylist *playlist) {
     setSharing(playlist->sharing());
 }
 
+void SoundCloudPlaylist::cancel() {
+    if (status() == QSoundCloud::ResourcesRequest::Loading) {
+        m_request->cancel();
+        emit changed();
+        emit statusChanged(status());
+    }
+}
+
 void SoundCloudPlaylist::initRequest() {
     if (!m_request) {
         m_request = new QSoundCloud::ResourcesRequest(this);
-        m_request->setClientId(SoundCloud::instance()->clientId());
-        m_request->setClientSecret(SoundCloud::instance()->clientSecret());
-        m_request->setAccessToken(SoundCloud::instance()->accessToken());
-        m_request->setRefreshToken(SoundCloud::instance()->refreshToken());
+        m_request->setClientId(SoundCloud::clientId());
+        m_request->setClientSecret(SoundCloud::clientSecret());
+        m_request->setAccessToken(SoundCloud::accessToken());
+        m_request->setRefreshToken(SoundCloud::refreshToken());
     
         connect(m_request, SIGNAL(accessTokenChanged(QString)), SoundCloud::instance(), SLOT(setAccessToken(QString)));
         connect(m_request, SIGNAL(refreshTokenChanged(QString)), SoundCloud::instance(), SLOT(setRefreshToken(QString)));
@@ -132,5 +151,6 @@ void SoundCloudPlaylist::onPlaylistRequestFinished() {
     }
     
     disconnect(m_request, SIGNAL(finished()), this, SLOT(onPlaylistRequestFinished()));
+    emit changed();
     emit statusChanged(status());
 }

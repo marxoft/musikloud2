@@ -15,16 +15,17 @@
  */
 
 #include "soundcloudconnectionmodel.h"
+#include "logger.h"
 #include "soundcloud.h"
 
 SoundCloudConnectionModel::SoundCloudConnectionModel(QObject *parent) :
     SelectionModel(parent),
     m_request(new QSoundCloud::ResourcesRequest(this))
 {
-    m_request->setClientId(SoundCloud::instance()->clientId());
-    m_request->setClientSecret(SoundCloud::instance()->clientSecret());
-    m_request->setAccessToken(SoundCloud::instance()->accessToken());
-    m_request->setRefreshToken(SoundCloud::instance()->refreshToken());
+    m_request->setClientId(SoundCloud::clientId());
+    m_request->setClientSecret(SoundCloud::clientSecret());
+    m_request->setAccessToken(SoundCloud::accessToken());
+    m_request->setRefreshToken(SoundCloud::refreshToken());
         
     connect(m_request, SIGNAL(accessTokenChanged(QString)), SoundCloud::instance(), SLOT(setAccessToken(QString)));
     connect(m_request, SIGNAL(refreshTokenChanged(QString)), SoundCloud::instance(), SLOT(setRefreshToken(QString)));
@@ -44,6 +45,7 @@ void SoundCloudConnectionModel::get(const QString &resourcePath, const QVariantM
         return;
     }
     
+    Logger::log("SoundCloudConnectionModel::get(). Resource path: " + resourcePath, Logger::HighVerbosity);
     clear();
     m_resourcePath = resourcePath;
     m_filters = filters;
@@ -56,6 +58,11 @@ void SoundCloudConnectionModel::cancel() {
 }
 
 void SoundCloudConnectionModel::reload() {
+    if (status() == QSoundCloud::ResourcesRequest::Loading) {
+        return;
+    }
+    
+    Logger::log("SoundCloudConnectionModel::reload(). Resource path: " + m_resourcePath, Logger::HighVerbosity);
     clear();
     m_request->get(m_resourcePath, m_filters);
     emit statusChanged(status());
@@ -63,10 +70,13 @@ void SoundCloudConnectionModel::reload() {
 
 void SoundCloudConnectionModel::onRequestFinished() {
     if (m_request->status() == QSoundCloud::ResourcesRequest::Ready) {
-        foreach (QVariant v, m_request->result().toList()) {
-            QVariantMap connection = v.toMap();
+        foreach (const QVariant &v, m_request->result().toList()) {
+            const QVariantMap connection = v.toMap();
             append(connection.value("display_name").toString(), connection);
         }
+    }
+    else {
+        Logger::log("SoundCloudConnectionModel::onRequestFinished(). Error: " + errorString());
     }
     
     emit statusChanged(status());

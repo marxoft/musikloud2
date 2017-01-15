@@ -15,11 +15,9 @@
  */
 
 #include "soundcloudcommentmodel.h"
+#include "logger.h"
 #include "soundcloud.h"
 #include <qsoundcloud/urls.h>
-#ifdef MUSIKLOUD_DEBUG
-#include <QDebug>
-#endif
 
 SoundCloudCommentModel::SoundCloudCommentModel(QObject *parent) :
     QAbstractListModel(parent),
@@ -29,16 +27,19 @@ SoundCloudCommentModel::SoundCloudCommentModel(QObject *parent) :
     m_roles[ArtistIdRole] = "artistId";
     m_roles[BodyRole] = "body";
     m_roles[DateRole] = "date";
+    m_roles[ErrorStringRole] = "errorString";
     m_roles[IdRole] = "id";
+    m_roles[StatusRole] = "status";
     m_roles[ThumbnailUrlRole] = "thumbnailUrl";
     m_roles[TrackIdRole] = "trackId";
+    m_roles[UrlRole] = "url";
 #if QT_VERSION < 0x050000
     setRoleNames(m_roles);
 #endif
-    m_request->setClientId(SoundCloud::instance()->clientId());
-    m_request->setClientSecret(SoundCloud::instance()->clientSecret());
-    m_request->setAccessToken(SoundCloud::instance()->accessToken());
-    m_request->setRefreshToken(SoundCloud::instance()->refreshToken());
+    m_request->setClientId(SoundCloud::clientId());
+    m_request->setClientSecret(SoundCloud::clientSecret());
+    m_request->setAccessToken(SoundCloud::accessToken());
+    m_request->setRefreshToken(SoundCloud::refreshToken());
     
     connect(m_request, SIGNAL(accessTokenChanged(QString)), SoundCloud::instance(), SLOT(setAccessToken(QString)));
     connect(m_request, SIGNAL(refreshTokenChanged(QString)), SoundCloud::instance(), SLOT(setRefreshToken(QString)));
@@ -61,16 +62,20 @@ QHash<int, QByteArray> SoundCloudCommentModel::roleNames() const {
 }
 #endif
 
-int SoundCloudCommentModel::rowCount(const QModelIndex &) const {
-    return m_items.size();
+int SoundCloudCommentModel::rowCount(const QModelIndex &parent) const {
+    return parent.isValid() ? 0 : m_items.size();
 }
 
-bool SoundCloudCommentModel::canFetchMore(const QModelIndex &) const {
-    return (status() != QSoundCloud::ResourcesRequest::Loading) && (!m_nextHref.isEmpty());
+int SoundCloudCommentModel::columnCount(const QModelIndex &parent) const {
+    return parent.isValid() ? 0 : 3;
 }
 
-void SoundCloudCommentModel::fetchMore(const QModelIndex &) {
-    if (!canFetchMore()) {
+bool SoundCloudCommentModel::canFetchMore(const QModelIndex &parent) const {
+    return (!parent.isValid()) && (status() != QSoundCloud::ResourcesRequest::Loading) && (!m_nextHref.isEmpty());
+}
+
+void SoundCloudCommentModel::fetchMore(const QModelIndex &parent) {
+    if (!canFetchMore(parent)) {
         return;
     }
 
@@ -78,9 +83,39 @@ void SoundCloudCommentModel::fetchMore(const QModelIndex &) {
     emit statusChanged(status());
 }
 
+QVariant SoundCloudCommentModel::headerData(int section, Qt::Orientation orientation, int role) const {
+    if ((orientation != Qt::Horizontal) || (role != Qt::DisplayRole)) {
+        return QVariant();
+    }
+    
+    switch (section) {
+    case 0:
+        return tr("Artist");
+    case 1:
+        return tr("Date");
+    case 2:
+        return tr("Comment");
+    default:
+        return QVariant();
+    }
+}
+
 QVariant SoundCloudCommentModel::data(const QModelIndex &index, int role) const {
-    if (SoundCloudComment *user = get(index.row())) {
-        return user->property(m_roles[role]);
+    if (const SoundCloudComment *comment = get(index.row())) {
+        if (role == Qt::DisplayRole) {
+            switch (index.column()) {
+            case 0:
+                return comment->artist();
+            case 1:
+                return comment->date();
+            case 2:
+                return comment->body();
+            default:
+                return QVariant();
+            }
+        }
+        
+        return comment->property(m_roles[role]);
     }
     
     return QVariant();
@@ -89,12 +124,12 @@ QVariant SoundCloudCommentModel::data(const QModelIndex &index, int role) const 
 QMap<int, QVariant> SoundCloudCommentModel::itemData(const QModelIndex &index) const {
     QMap<int, QVariant> map;
     
-    if (SoundCloudComment *user = get(index.row())) {
+    if (const SoundCloudComment *comment = get(index.row())) {
         QHashIterator<int, QByteArray> iterator(m_roles);
         
         while (iterator.hasNext()) {
             iterator.next();
-            map[iterator.key()] = user->property(iterator.value());
+            map[iterator.key()] = comment->property(iterator.value());
         }
     }
     
@@ -102,8 +137,8 @@ QMap<int, QVariant> SoundCloudCommentModel::itemData(const QModelIndex &index) c
 }
 
 QVariant SoundCloudCommentModel::data(int row, const QByteArray &role) const {
-    if (SoundCloudComment *user = get(row)) {
-        return user->property(role);
+    if (const SoundCloudComment *comment = get(row)) {
+        return comment->property(role);
     }
     
     return QVariant();
@@ -112,9 +147,9 @@ QVariant SoundCloudCommentModel::data(int row, const QByteArray &role) const {
 QVariantMap SoundCloudCommentModel::itemData(int row) const {
     QVariantMap map;
     
-    if (SoundCloudComment *user = get(row)) {
-        foreach (QByteArray role, m_roles.values()) {
-            map[role] = user->property(role);
+    if (const SoundCloudComment *comment = get(row)) {
+        foreach (const QByteArray &role, m_roles.values()) {
+            map[role] = comment->property(role);
         }
     }
     
@@ -134,6 +169,7 @@ void SoundCloudCommentModel::get(const QString &resourcePath, const QVariantMap 
         return;
     }
     
+    Logger::log("SoundCloudCommentModel::get(). Resource path: " + resourcePath, Logger::HighVerbosity);
     clear();
     m_resourcePath = resourcePath;
     m_filters = filters;
@@ -158,25 +194,32 @@ void SoundCloudCommentModel::cancel() {
 }
 
 void SoundCloudCommentModel::reload() {
+    if (status() == QSoundCloud::ResourcesRequest::Loading) {
+        return;
+    }
+    
+    Logger::log("SoundCloudCommentModel::reload(). Resource path: " + m_resourcePath, Logger::HighVerbosity);
     clear();
     m_request->get(m_resourcePath,  m_filters);
     emit statusChanged(status());
 }
 
-void SoundCloudCommentModel::append(SoundCloudComment *user) {
+void SoundCloudCommentModel::append(SoundCloudComment *comment) {
     beginInsertRows(QModelIndex(), m_items.size(), m_items.size());
-    m_items << user;
+    connect(comment, SIGNAL(changed()), this, SLOT(onItemChanged()));
+    m_items << comment;
     endInsertRows();
 }
 
-void SoundCloudCommentModel::insert(int row, SoundCloudComment *user) {
+void SoundCloudCommentModel::insert(int row, SoundCloudComment *comment) {
     if ((row >= 0) && (row < m_items.size())) {
         beginInsertRows(QModelIndex(), row, row);
-        m_items.insert(row, user);
+        connect(comment, SIGNAL(changed()), this, SLOT(onItemChanged()));
+        m_items.insert(row, comment);
         endInsertRows();
     }
     else {
-        append(user);
+        append(comment);
     }
 }
 
@@ -188,23 +231,36 @@ void SoundCloudCommentModel::remove(int row) {
     }
 }
 
+void SoundCloudCommentModel::onItemChanged() {
+    const int row = m_items.indexOf(qobject_cast<SoundCloudComment*>(sender()));
+    
+    if (row != -1) {
+        emit dataChanged(index(row, 0), index(row, columnCount() - 1));
+    }
+}
+
 void SoundCloudCommentModel::onRequestFinished() {
     if (m_request->status() == QSoundCloud::ResourcesRequest::Ready) {
-        QVariantMap result = m_request->result().toMap();
+        const QVariantMap result = m_request->result().toMap();
         
         if (!result.isEmpty()) {
             m_nextHref = result.value("next_href").toString().section(QSoundCloud::API_URL, -1);
-            QVariantList list = result.value("collection").toList();
+            const QVariantList list = result.value("collection").toList();
 
             beginInsertRows(QModelIndex(), m_items.size(), m_items.size() + list.size() - 1);
     
-            foreach (QVariant item, list) {
-                m_items << new SoundCloudComment(item.toMap(), this);
+            foreach (const QVariant &item, list) {
+                SoundCloudComment *comment = new SoundCloudComment(item.toMap(), this);
+                connect(comment, SIGNAL(changed()), this, SLOT(onItemChanged()));
+                m_items << comment;
             }
 
             endInsertRows();
             emit countChanged(rowCount());
         }
+    }
+    else {
+        Logger::log("SoundCloudCommentModel::onRequestFinished(). Error: " + errorString());
     }
     
     emit statusChanged(status());
@@ -214,7 +270,4 @@ void SoundCloudCommentModel::onCommentAdded(SoundCloudComment *comment) {
     if (comment->trackId() == m_resourcePath.section('/', 1, 1)) {
         insert(0, new SoundCloudComment(comment, this));
     }
-#ifdef MUSIKLOUD_DEBUG
-    qDebug() << "SoundCloudCommentModel::onCommentAdded" << comment->trackId();
-#endif
 }

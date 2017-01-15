@@ -53,11 +53,11 @@ private Q_SLOTS:
     void playPlaylist();
     void queuePlaylist();
     
-    void downloadTrack();
+    void downloadTrack(const QModelIndex &index);
     void playTrack(const QModelIndex &index);
-    void queueTrack();
-    void setTrackFavourite();
-    void shareTrack();
+    void queueTrack(const QModelIndex &index);
+    void setTrackFavourite(const QModelIndex &index);
+    void shareTrack(const QModelIndex &index);
     void showTrack(const QModelIndex &index);
     
     void showArtist();
@@ -91,11 +91,6 @@ private:
     QLabel *m_noTracksLabel;
     QAction *m_reloadAction;
     QAction *m_queuePlaylistAction;
-    QMenu *m_contextMenu;
-    QAction *m_queueAction;
-    QAction *m_downloadAction;
-    QAction *m_shareAction;
-    QAction *m_favouriteAction;
     QHBoxLayout *m_layout;
 };
     

@@ -33,37 +33,45 @@ class PluginPlaylistModel : public QAbstractListModel
     
 public:
     enum Roles {
-        ArtistRole = Qt::UserRole + 1,
+        ActionsRole = Qt::UserRole + 1,
+        ArtistRole,
         ArtistIdRole,
         DateRole,
         DescriptionRole,
         DurationRole,
         DurationStringRole,
+        ErrorStringRole,
         GenreRole,
         IdRole,
         LargeThumbnailUrlRole,
         ServiceRole,
+        StatusRole,
         ThumbnailUrlRole,
         TitleRole,
-        TrackCountRole
+        TrackCountRole,
+        TracksIdRole,
+        UrlRole
     };
     
     explicit PluginPlaylistModel(QObject *parent = 0);
     
-    QString service() const;
-    void setService(const QString &service);
-    
     QString errorString() const;
     
+    QString service() const;
+    void setService(const QString &s);
+        
     ResourcesRequest::Status status() const;
     
 #if QT_VERSION >= 0x050000
     QHash<int, QByteArray> roleNames() const;
 #endif
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
+    int columnCount(const QModelIndex &parent = QModelIndex()) const;
     
     bool canFetchMore(const QModelIndex &parent = QModelIndex()) const;
     Q_INVOKABLE void fetchMore(const QModelIndex &parent = QModelIndex());
+    
+    QVariant headerData(int section, Qt::Orientation orientation = Qt::Horizontal, int role = Qt::DisplayRole) const;
     
     QVariant data(const QModelIndex &index, int role) const;
     QMap<int, QVariant> itemData(const QModelIndex &index) const;
@@ -73,7 +81,7 @@ public:
     
     Q_INVOKABLE PluginPlaylist* get(int row) const;
     
-    Q_INVOKABLE void list(const QString &id = QString());
+    Q_INVOKABLE void list(const QString &resourceId);
     Q_INVOKABLE void search(const QString &query, const QString &order);
 
 public Q_SLOTS:
@@ -81,23 +89,26 @@ public Q_SLOTS:
     void cancel();
     void reload();
     
-private:    
-    void append(PluginPlaylist *playlist);
-    void insert(int row, PluginPlaylist *playlist);
-    void remove(int row);
-    
 private Q_SLOTS:
+    void onItemChanged();
     void onRequestFinished();
     
 Q_SIGNALS:
-    void countChanged(int c);
+    void countChanged(int count);
     void serviceChanged();
     void statusChanged(ResourcesRequest::Status s);
     
 private:
+    void append(PluginPlaylist *playlist);
+    void insert(int row, PluginPlaylist *playlist);
+    void remove(int row);
+    
+    ResourcesRequest* request();
+    
     ResourcesRequest *m_request;
     
-    QString m_id;
+    QString m_service;
+    QString m_resourceId;
     QString m_query;
     QString m_order;
     QString m_next;

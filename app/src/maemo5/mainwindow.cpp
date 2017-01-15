@@ -27,6 +27,7 @@
 #include "transfers.h"
 #include "transferswindow.h"
 #include "valueselectoraction.h"
+#include <QInputDialog>
 #include <QLabel>
 #include <QMenuBar>
 #include <QMaemo5InformationBox>
@@ -35,36 +36,38 @@
 
 MainWindow* MainWindow::self = 0;
 
-MainWindow::MainWindow(StackedWindow *parent) :
-    StackedWindow(parent),
+MainWindow::MainWindow() :
+    StackedWindow(),
     m_serviceModel(new ServiceModel(this)),
     m_serviceAction(new ValueSelectorAction(this)),
     m_nowPlayingAction(new NowPlayingAction(this)),
-    m_queueAction(new QAction(tr("Queue folder"), this)),
-    m_playAction(new QAction(tr("Play folder"), this)),
+    m_playFolderAction(new QAction(tr("Play folder"), this)),
+    m_queueFolderAction(new QAction(tr("Queue folder"), this)),
+    m_playUrlAction(new QAction(tr("Play URL"), this)),
+    m_queueUrlAction(new QAction(tr("Queue URL"), this)),
     m_transfersAction(new QAction(tr("Transfers"), this)),
     m_settingsAction(new QAction(tr("Settings"), this)),
     m_aboutAction(new QAction(tr("About"), this))
 {
-    if (!self) {
-        self = this;
-    }
-        
     m_serviceAction->setText(tr("Service"));
     m_serviceAction->setModel(m_serviceModel);
-    m_serviceAction->setValue(Settings::instance()->currentService());
+    m_serviceAction->setValue(Settings::currentService());
     
     menuBar()->addAction(m_serviceAction);
-    menuBar()->addAction(m_queueAction);
-    menuBar()->addAction(m_playAction);
+    menuBar()->addAction(m_playFolderAction);
+    menuBar()->addAction(m_queueFolderAction);
+    menuBar()->addAction(m_playUrlAction);
+    menuBar()->addAction(m_queueUrlAction);
     menuBar()->addAction(m_transfersAction);
     menuBar()->addAction(m_settingsAction);
     menuBar()->addAction(m_aboutAction);
     menuBar()->addAction(m_nowPlayingAction);
     
     connect(m_serviceAction, SIGNAL(valueChanged(QVariant)), this, SLOT(setService(QVariant)));
-    connect(m_queueAction, SIGNAL(triggered()), this, SLOT(queueFolder()));
-    connect(m_playAction, SIGNAL(triggered()), this, SLOT(playFolder()));
+    connect(m_playFolderAction, SIGNAL(triggered()), this, SLOT(playFolder()));
+    connect(m_queueFolderAction, SIGNAL(triggered()), this, SLOT(queueFolder()));
+    connect(m_playUrlAction, SIGNAL(triggered()), this, SLOT(playUrl()));
+    connect(m_queueUrlAction, SIGNAL(triggered()), this, SLOT(queueUrl()));
     connect(m_transfersAction, SIGNAL(triggered()), this, SLOT(showTransfers()));
     connect(m_settingsAction, SIGNAL(triggered()), this, SLOT(showSettingsDialog()));
     connect(m_aboutAction, SIGNAL(triggered()), this, SLOT(showAboutDialog()));
@@ -72,23 +75,21 @@ MainWindow::MainWindow(StackedWindow *parent) :
             this, SLOT(onPlayerStatusChanged(AudioPlayer::Status)));
     connect(Transfers::instance(), SIGNAL(transferAdded(Transfer*)), this, SLOT(onTransferAdded(Transfer*)));
     
-    setService(Settings::instance()->currentService());
+    setService(Settings::currentService());
 }
 
 MainWindow::~MainWindow() {
-    if (self == this) {
-        self = 0;
-    }
+    self = 0;
 }
 
 MainWindow* MainWindow::instance() {
-    return self;
+    return self ? self : self = new MainWindow;
 }
 
 bool MainWindow::search(const QString &service, const QString &query, const QString &type, const QString &order) {
     clearWindows();
     
-    if (service != Settings::instance()->currentService()) {
+    if (service != Settings::currentService()) {
         setService(service);
     }
     
@@ -97,7 +98,7 @@ bool MainWindow::search(const QString &service, const QString &query, const QStr
 }
 
 bool MainWindow::showResource(const QString &url) {
-    QVariantMap resource = Resources::getResourceFromUrl(url);
+    const QVariantMap resource = Resources::getResourceFromUrl(url);
     
     if (resource.isEmpty()) {
         return false;
@@ -110,9 +111,9 @@ bool MainWindow::showResource(const QVariantMap &resource) {
     clearWindows();
     activateWindow();
     
-    QVariant service = resource.value("service");
+    const QVariant service = resource.value("service");
     
-    if (service != Settings::instance()->currentService()) {
+    if (service != Settings::currentService()) {
         setService(service);
     }
     
@@ -122,11 +123,25 @@ bool MainWindow::showResource(const QVariantMap &resource) {
 }
 
 void MainWindow::playFolder() {
-    QString folder = QFileDialog::getExistingDirectory(this, tr("Play folder"), "/home/user/MyDocs/",
-                                                       QFileDialog::ShowDirsOnly | QFileDialog::ReadOnly);
+    const QString folder = QFileDialog::getExistingDirectory(this, tr("Play folder"), "/home/user/MyDocs/",
+                                                             QFileDialog::ShowDirsOnly | QFileDialog::ReadOnly);
     
     if (!folder.isEmpty()) {
-        if (AudioPlayer::instance()->playFolder(folder)) {
+        if (AudioPlayer::instance()->playUrl(QUrl::fromLocalFile(folder)) > 0) {
+            NowPlayingWindow *window = new NowPlayingWindow(this);
+            window->show();
+        }
+        else {
+            QMaemo5InformationBox::information(this, tr("No tracks added"));
+        }
+    }
+}
+
+void MainWindow::playUrl() {
+    const QString url = QInputDialog::getText(this, tr("Play URL"), tr("URL"));
+    
+    if (!url.isEmpty()) {
+        if (AudioPlayer::instance()->playUrl(url) > 0) {
             NowPlayingWindow *window = new NowPlayingWindow(this);
             window->show();
         }
@@ -137,15 +152,29 @@ void MainWindow::playFolder() {
 }
 
 void MainWindow::queueFolder() {
-    QString folder = QFileDialog::getExistingDirectory(this, tr("Queue folder"), "/home/user/MyDocs/",
-                                                       QFileDialog::ShowDirsOnly | QFileDialog::ReadOnly);
+    const QString folder = QFileDialog::getExistingDirectory(this, tr("Queue folder"), "/home/user/MyDocs/",
+                                                             QFileDialog::ShowDirsOnly | QFileDialog::ReadOnly);
     
     if (!folder.isEmpty()) {
-        const int count = AudioPlayer::instance()->queueCount();
+        const int added = AudioPlayer::instance()->addUrl(QUrl::fromLocalFile(folder));
         
-        if (AudioPlayer::instance()->addFolder(folder)) {
-            QMaemo5InformationBox::information(this, tr("%1 tracks added to playback queue")
-                                              .arg(AudioPlayer::instance()->queueCount() - count));
+        if (added > 0) {
+            QMaemo5InformationBox::information(this, tr("%1 tracks added to playback queue").arg(added));
+        }
+        else {
+            QMaemo5InformationBox::information(this, tr("No tracks added"));
+        }
+    }
+}
+
+void MainWindow::queueUrl() {
+    const QString url = QInputDialog::getText(this, tr("Queue URL"), tr("URL"));
+    
+    if (!url.isEmpty()) {
+        const int added = AudioPlayer::instance()->addUrl(url);
+        
+        if (added > 0) {
+            QMaemo5InformationBox::information(this, tr("%1 tracks added to playback queue").arg(added));
         }
         else {
             QMaemo5InformationBox::information(this, tr("No tracks added"));
@@ -162,22 +191,20 @@ void MainWindow::setService(const QVariant &service) {
     }
     
     m_serviceAction->setValue(service);
-    Settings::instance()->setCurrentService(service.toString());
+    Settings::setCurrentService(service.toString());
     
-    QString text = m_serviceModel->data(m_serviceModel->index(m_serviceModel->match("value", service)),
-                                        ServiceModel::NameRole).toString();
+    const QString text = m_serviceModel->data(m_serviceModel->index(m_serviceModel->match("value", service)),
+                                              ServiceModel::NameRole).toString();
     
     setWindowTitle(text.isEmpty() ? "MusiKloud" : text);
 }
 
 void MainWindow::showAboutDialog() {
-    AboutDialog *dialog = new AboutDialog(this);
-    dialog->open();
+    AboutDialog(this).exec();
 }
 
 void MainWindow::showSettingsDialog() {
-    SettingsDialog *dialog = new SettingsDialog(this);
-    dialog->open();
+    SettingsDialog(this).exec();
 }
 
 void MainWindow::showTransfers() {
@@ -187,7 +214,7 @@ void MainWindow::showTransfers() {
 
 void MainWindow::onPlayerStatusChanged(AudioPlayer::Status status) {
     if (status == AudioPlayer::Failed) {
-        QMessageBox::critical(this, tr("Error"), AudioPlayer::instance()->errorString());
+        QMessageBox::critical(this, tr("Playback error"), AudioPlayer::instance()->errorString());
     }
 }
 

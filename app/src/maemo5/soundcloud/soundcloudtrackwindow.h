@@ -60,11 +60,11 @@ private Q_SLOTS:
     void setTrackFavourite();
     void shareTrack();
     
-    void downloadRelatedTrack();
+    void downloadRelatedTrack(const QModelIndex &index);
     void playRelatedTrack(const QModelIndex &index);
-    void queueRelatedTrack();
-    void setRelatedTrackFavourite();
-    void shareRelatedTrack();
+    void queueRelatedTrack(const QModelIndex &index);
+    void setRelatedTrackFavourite(const QModelIndex &index);
+    void shareRelatedTrack(const QModelIndex &index);
     void showRelatedTrack(const QModelIndex &index);
     
     void reload();
@@ -106,19 +106,13 @@ private:
     TextBrowser *m_descriptionLabel;
     QLabel *m_dateLabel;
     QLabel *m_artistLabel;
-    QLabel *m_noTracksLabel;
-    QLabel *m_noCommentsLabel;
+    QLabel *m_noResultsLabel;
     QAction *m_reloadAction;
     QAction *m_queueAction;
     QAction *m_downloadAction;
     QAction *m_shareAction;
     QAction *m_favouriteAction;
     QAction *m_commentAction;
-    QMenu *m_contextMenu;
-    QAction *m_relatedQueueAction;
-    QAction *m_relatedDownloadAction;
-    QAction *m_relatedShareAction;
-    QAction *m_relatedFavouriteAction;
     QGridLayout *m_layout;
 };
     

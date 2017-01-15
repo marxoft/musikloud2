@@ -24,6 +24,9 @@ class PluginTrack : public MKTrack
 {
     Q_OBJECT
     
+    Q_PROPERTY(QVariantList actions READ actions NOTIFY actionsChanged)
+    Q_PROPERTY(QString commentsId READ commentsId NOTIFY commentsIdChanged)
+    Q_PROPERTY(QString relatedTracksId READ relatedTracksId NOTIFY relatedTracksIdChanged)
     Q_PROPERTY(QString errorString READ errorString NOTIFY statusChanged)
     Q_PROPERTY(ResourcesRequest::Status status READ status NOTIFY statusChanged)
 
@@ -31,7 +34,12 @@ public:
     explicit PluginTrack(QObject *parent = 0);
     explicit PluginTrack(const QString &service, const QString &id, QObject *parent = 0);
     explicit PluginTrack(const QString &service, const QVariantMap &track, QObject *parent = 0);
-    explicit PluginTrack(PluginTrack *track, QObject *parent = 0);
+    explicit PluginTrack(const PluginTrack *track, QObject *parent = 0);
+    
+    QVariantList actions() const;
+    
+    QString commentsId() const;
+    QString relatedTracksId() const;
     
     QString errorString() const;
         
@@ -40,15 +48,36 @@ public:
     Q_INVOKABLE void loadTrack(const QString &service, const QString &id);
     Q_INVOKABLE void loadTrack(const QString &service, const QVariantMap &track);
     Q_INVOKABLE void loadTrack(PluginTrack *track);
-            
+
+public Q_SLOTS:
+    void cancel();
+    void del(const QString &resourceType, const QString &resourceId);
+    void insert(const QString &resourceType, const QString &resourceId);
+
+protected:
+    void setActions(const QVariantList &a);
+    
+    void setCommentsId(const QString &i);
+    void setRelatedTracksId(const QString &i);
+
 private Q_SLOTS:
     void onRequestFinished();
     
 Q_SIGNALS:
+    void actionsChanged();
+    void commentsIdChanged();
+    void relatedTracksIdChanged();
     void statusChanged(ResourcesRequest::Status s);
 
 private:
+    ResourcesRequest* request();
+    
     ResourcesRequest *m_request;
+    
+    QVariantList m_actions;
+    
+    QString m_commentsId;
+    QString m_relatedTracksId;
 };
 
 #endif // PLUGINTRACK_H

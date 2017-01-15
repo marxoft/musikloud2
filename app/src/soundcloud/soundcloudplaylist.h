@@ -32,7 +32,7 @@ public:
     explicit SoundCloudPlaylist(QObject *parent = 0);
     explicit SoundCloudPlaylist(const QString &id, QObject *parent = 0);
     explicit SoundCloudPlaylist(const QVariantMap &playlist, QObject *parent = 0);
-    explicit SoundCloudPlaylist(SoundCloudPlaylist *playlist, QObject *parent = 0);
+    explicit SoundCloudPlaylist(const SoundCloudPlaylist *playlist, QObject *parent = 0);
     
     QString errorString() const;
         
@@ -43,12 +43,10 @@ public:
     Q_INVOKABLE void loadPlaylist(const QString &id);
     Q_INVOKABLE void loadPlaylist(const QVariantMap &playlist);
     Q_INVOKABLE void loadPlaylist(SoundCloudPlaylist *playlist);
-    
-private:    
-    void setSharing(const QString &s);
-    
-    void initRequest();    
-            
+
+public Q_SLOTS:
+    void cancel();
+
 private Q_SLOTS:
     void onPlaylistRequestFinished();
     
@@ -58,6 +56,10 @@ Q_SIGNALS:
     void statusChanged(QSoundCloud::ResourcesRequest::Status s);
 
 private:
+    void setSharing(const QString &s);
+    
+    void initRequest();
+    
     QSoundCloud::ResourcesRequest *m_request;
         
     QString m_sharing;

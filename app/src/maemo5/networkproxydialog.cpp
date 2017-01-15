@@ -36,21 +36,22 @@ NetworkProxyDialog::NetworkProxyDialog(QWidget *parent) :
     m_passEdit(new QLineEdit(this))
 {
     setWindowTitle(tr("Network proxy"));
+    setMinimumHeight(360);
     
     m_proxyTypeSelector->setModel(new NetworkProxyTypeModel(this));
-    m_proxyTypeSelector->setValue(Settings::instance()->networkProxyType());
+    m_proxyTypeSelector->setValue(Settings::networkProxyType());
 
     m_hostEdit->setMinimumWidth(380);
-    m_hostEdit->setText(Settings::instance()->networkProxyHost());
+    m_hostEdit->setText(Settings::networkProxyHost());
     m_portEdit->setValidator(new QIntValidator(0, 100000, this));
-    m_portEdit->setText(QString::number(Settings::instance()->networkProxyPort()));
+    m_portEdit->setText(QString::number(Settings::networkProxyPort()));
     m_passEdit->setEchoMode(QLineEdit::Password);
-    m_passEdit->setText(Settings::instance()->networkProxyPassword());
-    m_userEdit->setText(Settings::instance()->networkProxyUsername());
+    m_passEdit->setText(Settings::networkProxyPassword());
+    m_userEdit->setText(Settings::networkProxyUsername());
 
     QGroupBox *proxyGroup = new QGroupBox(tr("Use network proxy"), this);
     proxyGroup->setCheckable(true);
-    proxyGroup->setChecked(Settings::instance()->networkProxyEnabled());
+    proxyGroup->setChecked(Settings::networkProxyEnabled());
     
     QGridLayout *proxyGrid = new QGridLayout(proxyGroup);
     proxyGrid->setContentsMargins(0, 0, 0, 0);
@@ -72,7 +73,8 @@ NetworkProxyDialog::NetworkProxyDialog(QWidget *parent) :
     scrollArea->setWidgetResizable(true);
     scrollArea->setWidget(scrollWidget);
 
-    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Vertical, this);
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel,
+                                                       Qt::Vertical, this);
     QHBoxLayout *hbox = new QHBoxLayout(this);
     hbox->addWidget(scrollArea);
     hbox->addWidget(buttonBox);
@@ -88,14 +90,14 @@ NetworkProxyDialog::NetworkProxyDialog(QWidget *parent) :
 }
 
 void NetworkProxyDialog::accept() {
-    Settings::instance()->setNetworkProxy();
+    Settings::setNetworkProxy();
     Dialog::accept();
 }
 
 void NetworkProxyDialog::setNetworkProxyPort(const QString &port) {
-    Settings::instance()->setNetworkProxyPort(port.toInt());
+    Settings::setNetworkProxyPort(port.toInt());
 }
 
 void NetworkProxyDialog::setNetworkProxyType(const QVariant &type) {
-    Settings::instance()->setNetworkProxyType(type.toInt());
+    Settings::setNetworkProxyType(type.toInt());
 }

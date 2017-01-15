@@ -28,7 +28,6 @@ public:
     explicit AboutDialog(QWidget *parent = 0);
     
 private Q_SLOTS:
-    void donate();
     void reportBug();
 };
 

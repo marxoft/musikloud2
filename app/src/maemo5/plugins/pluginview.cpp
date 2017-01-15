@@ -104,8 +104,18 @@ void PluginView::showPlaylists(const QString &name, const QString &id) {
 }
 
 void PluginView::showSearchDialog() {
-    PluginSearchDialog *dialog = new PluginSearchDialog(m_model->service(), StackedWindow::currentWindow());
-    dialog->open();
+    PluginSearchDialog dialog(m_model->service(), StackedWindow::currentWindow());
+
+    if (dialog.exec() == QDialog::Accepted) {
+        const QVariantMap resource = Resources::getResourceFromUrl(dialog.query());
+        
+        if (resource.value("service") == m_model->service()) {
+            showResource(resource.value("type").toString(), resource.value("id").toString());
+        }
+        else {
+            search(dialog.query(), dialog.type(), dialog.order());
+        }
+    }
 }
 
 void PluginView::showTracks(const QString &name, const QString &id) {
@@ -116,7 +126,7 @@ void PluginView::showTracks(const QString &name, const QString &id) {
 }
 
 void PluginView::onItemActivated(const QModelIndex &index) {
-    QVariantMap type = index.data(PluginNavModel::ValueRole).toMap();
+    const QVariantMap type = index.data(PluginNavModel::ValueRole).toMap();
     
     if (type.isEmpty()) {
         showSearchDialog();

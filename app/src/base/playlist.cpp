@@ -24,7 +24,7 @@ MKPlaylist::MKPlaylist(QObject *parent) :
 {
 }
 
-MKPlaylist::MKPlaylist(MKPlaylist *playlist, QObject *parent) :
+MKPlaylist::MKPlaylist(const MKPlaylist *playlist, QObject *parent) :
     QObject(parent),
     m_artist(playlist->artist()),
     m_artistId(playlist->artistId()),
@@ -38,7 +38,8 @@ MKPlaylist::MKPlaylist(MKPlaylist *playlist, QObject *parent) :
     m_thumbnailUrl(playlist->thumbnailUrl()),
     m_service(playlist->service()),
     m_title(playlist->title()),
-    m_trackCount(playlist->trackCount())
+    m_trackCount(playlist->trackCount()),
+    m_url(playlist->url())
 {
 }
 
@@ -49,6 +50,7 @@ QString MKPlaylist::artist() const {
 void MKPlaylist::setArtist(const QString &a) {
     if (a != artist()) {
         m_artist = a;
+        emit changed();
         emit artistChanged();
     }
 }
@@ -60,6 +62,7 @@ QString MKPlaylist::artistId() const {
 void MKPlaylist::setArtistId(const QString &i) {
     if (i != artistId()) {
         m_artistId = i;
+        emit changed();
         emit artistIdChanged();
     }
 }
@@ -71,6 +74,7 @@ QString MKPlaylist::date() const {
 void MKPlaylist::setDate(const QString &d) {
     if (d != date()) {
         m_date = d;
+        emit changed();
         emit dateChanged();
     }
 }
@@ -82,6 +86,7 @@ QString MKPlaylist::description() const {
 void MKPlaylist::setDescription(const QString &d) {
     if (d != description()) {
         m_description = d;
+        emit changed();
         emit descriptionChanged();
     }
 }
@@ -94,6 +99,7 @@ void MKPlaylist::setDuration(qint64 d) {
     if (d != duration()) {
         m_duration = d;
         m_durationString = Utils::formatMSecs(d);
+        emit changed();
         emit durationChanged();
     }
 }
@@ -105,6 +111,7 @@ QString MKPlaylist::durationString() const {
 void MKPlaylist::setDurationString(const QString &s) {
     if (s != durationString()) {
         m_durationString = s;
+        emit changed();
         emit durationChanged();
     }
 }
@@ -116,6 +123,7 @@ QString MKPlaylist::genre() const {
 void MKPlaylist::setGenre(const QString &g) {
     if (g != genre()) {
         m_genre = g;
+        emit changed();
         emit genreChanged();
     }
 }
@@ -127,6 +135,7 @@ QString MKPlaylist::id() const {
 void MKPlaylist::setId(const QString &i) {
     if (i != id()) {
         m_id = i;
+        emit changed();
         emit idChanged();
     }
 }
@@ -138,6 +147,7 @@ QUrl MKPlaylist::largeThumbnailUrl() const {
 void MKPlaylist::setLargeThumbnailUrl(const QUrl &u) {
     if (u != largeThumbnailUrl()) {
         m_largeThumbnailUrl = u;
+        emit changed();
         emit largeThumbnailUrlChanged();
     }
 }
@@ -149,6 +159,7 @@ QUrl MKPlaylist::thumbnailUrl() const {
 void MKPlaylist::setThumbnailUrl(const QUrl &u) {
     if (u != thumbnailUrl()) {
         m_thumbnailUrl = u;
+        emit changed();
         emit thumbnailUrlChanged();
     }
 }
@@ -160,6 +171,7 @@ QString MKPlaylist::service() const {
 void MKPlaylist::setService(const QString &s) {
     if (s != service()) {
         m_service = s;
+        emit changed();
         emit serviceChanged();
     }
 }
@@ -171,6 +183,7 @@ QString MKPlaylist::title() const {
 void MKPlaylist::setTitle(const QString &t) {
     if (t != title()) {
         m_title = t;
+        emit changed();
         emit titleChanged();
     }
 }
@@ -182,7 +195,20 @@ int MKPlaylist::trackCount() const {
 void MKPlaylist::setTrackCount(int c) {
     if (c != trackCount()) {
         m_trackCount = c;
+        emit changed();
         emit trackCountChanged();
+    }
+}
+
+QUrl MKPlaylist::url() const {
+    return m_url;
+}
+
+void MKPlaylist::setUrl(const QUrl &u) {
+    if (u != url()) {
+        m_url = u;
+        emit changed();
+        emit urlChanged();
     }
 }
 
@@ -199,6 +225,7 @@ void MKPlaylist::loadPlaylist(MKPlaylist *playlist) {
     setService(playlist->service());
     setTitle(playlist->title());
     setTrackCount(playlist->trackCount());
+    setUrl(playlist->url());
     
     if (duration() == 0) {
         setDurationString(playlist->durationString());

@@ -15,12 +15,10 @@
  */
 
 #include "resources.h"
-#include "resourcesplugins.h"
+#include "logger.h"
+#include "pluginmanager.h"
 #include "soundcloud.h"
 #include "utils.h"
-#ifdef MUSIKLOUD_DEBUG
-#include <QDebug>
-#endif
 
 const QString Resources::SOUNDCLOUD("soundcloud");
 
@@ -31,22 +29,114 @@ const QString Resources::PLAYLIST("playlist");
 const QString Resources::STREAM("stream");
 const QString Resources::TRACK("track");
 
-static const QRegExp SOUNDCLOUD_REGEXP("http(s|)://(api\\.|)soundcloud\\.com/[\\w-_/]+");
-
-ListResource::ListResource(const QString &name, const QString &type, const QString &id) :
+GetResource::GetResource(const QVariantMap &map) :
     QVariantMap()
 {
-    insert("name", name);
+    insert("type", map.value("type"));
+    insert("regExp", map.value("regExp"));
+}
+
+GetResource::GetResource(const QString &type, const QRegExp &regExp) :
+    QVariantMap()
+{
+    setType(type);
+    setRegExp(regExp);
+}
+
+QRegExp GetResource::regExp() const {
+    return QRegExp(value("regExp").toString());
+}
+
+void GetResource::setRegExp(const QRegExp &regExp) {
+    insert("regExp", regExp);
+}
+
+QString GetResource::type() const {
+    return value("type").toString();
+}
+
+void GetResource::setType(const QString &type) {
     insert("type", type);
+}
+
+ListResource::ListResource(const QVariantMap &map) :
+    QVariantMap()
+{
+    insert("label", map.value("label"));
+    insert("type", map.value("type"));
+    insert("id", map.value("id"));
+}
+
+ListResource::ListResource(const QString &label, const QString &type, const QString &id) :
+    QVariantMap()
+{
+    setId(id);
+    setLabel(label);
+    setType(type);
+}
+
+QString ListResource::id() const {
+    return value("id").toString();
+}
+
+void ListResource::setId(const QString &id) {
     insert("id", id);
 }
 
-SearchResource::SearchResource(const QString &name, const QString &type, const QString &order) :
+QString ListResource::label() const {
+    return value("label").toString();
+}
+
+void ListResource::setLabel(const QString &label) {
+    insert("label", label);
+}
+
+QString ListResource::type() const {
+    return value("type").toString();
+}
+
+void ListResource::setType(const QString &type) {
+    insert("type", type);
+}
+
+SearchResource::SearchResource(const QVariantMap &map) :
     QVariantMap()
 {
-    insert("name", name);
-    insert("type", type);
+    insert("label", map.value("label"));
+    insert("type", map.value("type"));
+    insert("order", map.value("order"));
+}
+
+SearchResource::SearchResource(const QString &label, const QString &type, const QString &order) :
+    QVariantMap()
+{
+    setLabel(label);
+    setType(type);
+    setOrder(order);
+}
+
+QString SearchResource::label() const {
+    return value("label").toString();
+}
+
+void SearchResource::setLabel(const QString &label) {
+    insert("label", label);
+}
+
+QString SearchResource::order() const {
+    return value("order").toString();
+}
+
+void SearchResource::setOrder(const QString &order) {
     insert("order", order);
+}
+
+QString SearchResource::type() const {
+    return value("type").toString();
+}
+
+void SearchResource::setType(const QString &type) {
+    insert("type", type);
 }
 
 Resources::Resources(QObject *parent) :
@@ -83,13 +173,11 @@ QString Resources::trackConstant() {
 }
 
 QVariantMap Resources::getResourceFromUrl(QString url) {
-#ifdef MUSIKLOUD_DEBUG
-    qDebug() << "Resources::getResourceFromUrl" << url;
-#endif
+    Logger::log("Resources::getResourceFromUrl. URL: " + url, Logger::MediumVerbosity);
     url = Utils::unescape(url);
     QVariantMap result;
 
-    if (SOUNDCLOUD_REGEXP.indexIn(url) == 0) {
+    if (SoundCloud::URL_REGEXP.indexIn(url) == 0) {
         result.insert("service", SOUNDCLOUD);
         result.insert("id", url);
 
@@ -104,30 +192,22 @@ QVariantMap Resources::getResourceFromUrl(QString url) {
         }
     }
     else {
-        QList<ResourcesPlugin> plugins = ResourcesPlugins::instance()->plugins();
-        
-        for (int i = 0; i < plugins.size(); i++) {
-            if (!plugins.at(i).regExps.isEmpty()) {
-                QMapIterator<QString, QRegExp> iterator(plugins.at(i).regExps);
+        const QList<ServicePluginPair> plugins = PluginManager::instance()->plugins();
+
+        foreach (const ServicePluginPair &pair, plugins) {
+            if (const ServicePluginConfig *config = pair.config) {
                 
-                while (iterator.hasNext()) {
-                    iterator.next();
-                    
-                    if (iterator.value().indexIn(url) == 0) {
-                        result.insert("service", plugins.at(i).name);
-                        result.insert("type", iterator.key());
+                foreach (const GetResource &resource, config->getResources()) {                    
+                    if (resource.regExp().indexIn(url) == 0) {
+                        result.insert("service", config->id());
+                        result.insert("type", resource.type());
                         result.insert("id", url);
-#ifdef MUSIKLOUD_DEBUG
-                        qDebug() << result;
-#endif
                         return result;
                     }
                 }
             }
         }
     }
-#ifdef MUSIKLOUD_DEBUG
-    qDebug() << result;
-#endif
+    
     return result;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Stuart Howarth <showarth@marxoft.co.uk>
+ * Copyright (C) 2016 Stuart Howarth <showarth@marxoft.co.uk>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -18,76 +18,108 @@
 #include "categorynamemodel.h"
 #include "resources.h"
 #include "settings.h"
-#include "transfers.h"
 #include "valueselector.h"
+#include <QScrollArea>
+#include <QCheckBox>
+#include <QLabel>
+#include <QLineEdit>
 #include <QDialogButtonBox>
 #include <QPushButton>
-#include <QGridLayout>
+#include <QHBoxLayout>
 #include <QMessageBox>
 
-SoundCloudDownloadDialog::SoundCloudDownloadDialog(const QString &resourceId, const QString &title, QWidget *parent) :
+SoundCloudDownloadDialog::SoundCloudDownloadDialog(QWidget *parent) :
     Dialog(parent),
-    m_id(resourceId),
-    m_title(title),
     m_streamModel(new SoundCloudStreamModel(this)),
     m_categoryModel(new CategoryNameModel(this)),
+    m_scrollArea(new QScrollArea(this)),
+    m_commandCheckBox(new QCheckBox(tr("Override global custom command"), this)),
+    m_commandEdit(new QLineEdit(this)),
     m_streamSelector(new ValueSelector(tr("Audio format"), this)),
     m_categorySelector(new ValueSelector(tr("Category"), this)),
     m_buttonBox(new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Vertical, this)),
-    m_layout(new QGridLayout(this))
+    m_layout(new QHBoxLayout(this))
 {
-    setWindowTitle(tr("Download track"));
+    setWindowTitle(tr("Download"));
+    setMinimumHeight(360);
     
     m_streamSelector->setModel(m_streamModel);
     m_categorySelector->setModel(m_categoryModel);
-    m_categorySelector->setValue(Settings::instance()->defaultCategory());
+    m_categorySelector->setValue(Settings::defaultCategory());
     m_categorySelector->setEnabled(m_categoryModel->rowCount() > 0);
     
     m_buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
-
-    m_layout->addWidget(m_streamSelector, 0, 0);
-    m_layout->addWidget(m_categorySelector, 1, 0);
-    m_layout->addWidget(m_buttonBox, 1, 1);
-    m_layout->setColumnStretch(0, 1);
+    
+    QWidget *scrollWidget = new QWidget(m_scrollArea);
+    QVBoxLayout *vbox = new QVBoxLayout(scrollWidget);
+    vbox->addWidget(m_streamSelector);
+    vbox->addWidget(m_categorySelector);
+    vbox->addWidget(new QLabel(tr("Custom command (%f for filename)"), this));
+    vbox->addWidget(m_commandEdit);
+    vbox->addWidget(m_commandCheckBox);
+    vbox->setContentsMargins(0, 0, 0, 0);
+    m_scrollArea->setWidget(scrollWidget);
+    m_scrollArea->setWidgetResizable(true);
+    
+    m_layout->addWidget(m_scrollArea);
+    m_layout->addWidget(m_buttonBox, Qt::AlignBottom);
+    m_layout->setStretch(0, 1);
     
     connect(m_streamModel, SIGNAL(statusChanged(QSoundCloud::StreamsRequest::Status)), this,
             SLOT(onStreamModelStatusChanged(QSoundCloud::StreamsRequest::Status)));
-    connect(m_categorySelector, SIGNAL(valueChanged(QVariant)), this, SLOT(onCategoryChanged()));
-    connect(m_streamSelector, SIGNAL(valueChanged(QVariant)), this, SLOT(onStreamChanged()));
-    connect(m_buttonBox, SIGNAL(accepted()), this, SLOT(addDownload()));
+    connect(m_buttonBox, SIGNAL(accepted()), this, SLOT(accept()));
     connect(m_buttonBox, SIGNAL(rejected()), this, SLOT(reject()));    
 }
 
-void SoundCloudDownloadDialog::showEvent(QShowEvent *e) {
-    Dialog::showEvent(e);
-    m_streamModel->get(m_id);
+QString SoundCloudDownloadDialog::trackId() const {
+    return m_trackId;
 }
 
-void SoundCloudDownloadDialog::onCategoryChanged() {
-    Settings::instance()->setDefaultCategory(m_categorySelector->valueText());
+QString SoundCloudDownloadDialog::streamId() const {
+    return m_streamSelector->currentValue().toMap().value("id").toString();
 }
 
-void SoundCloudDownloadDialog::onStreamChanged() {
-    Settings::instance()->setDefaultDownloadFormat(Resources::SOUNDCLOUD, m_streamSelector->valueText());
+QString SoundCloudDownloadDialog::category() const {
+    return m_categorySelector->valueText();
+}
+
+QString SoundCloudDownloadDialog::customCommand() const {
+    return m_commandEdit->text();
+}
+
+bool SoundCloudDownloadDialog::customCommandOverrideEnabled() const {
+    return m_commandCheckBox->isChecked();
+}
+
+void SoundCloudDownloadDialog::accept() {
+    Settings::setDefaultDownloadFormat(Resources::SOUNDCLOUD, m_streamSelector->valueText());
+    Settings::setDefaultCategory(category());
+    Dialog::accept();
+}
+
+void SoundCloudDownloadDialog::get(const QString &trackId) {
+    m_trackId = trackId;
+    m_streamModel->get(trackId);
 }
 
 void SoundCloudDownloadDialog::onStreamModelStatusChanged(QSoundCloud::StreamsRequest::Status status) {
     switch (status) {
     case QSoundCloud::StreamsRequest::Loading:
+        m_buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
         showProgressIndicator();
         return;
     case QSoundCloud::StreamsRequest::Ready:
         if (m_streamModel->rowCount() > 0) {
             m_streamSelector->setCurrentIndex(qMax(0, m_streamModel->match("name",
-                                                   Settings::instance()->defaultDownloadFormat(Resources::SOUNDCLOUD))));
+                                                   Settings::defaultDownloadFormat(Resources::SOUNDCLOUD))));
         }
         else {
-            QMessageBox::critical(this, tr("Error"), tr("No streams available for '%1'").arg(m_title));
+            QMessageBox::critical(this, tr("Error"), tr("No streams available"));
         }
         
         break;
     case QSoundCloud::StreamsRequest::Failed:
-        QMessageBox::critical(this, tr("Error"), tr("No streams available for '%1'").arg(m_title));
+        QMessageBox::critical(this, tr("Error"), tr("No streams available"));
         break;
     default:
         break;
@@ -95,11 +127,4 @@ void SoundCloudDownloadDialog::onStreamModelStatusChanged(QSoundCloud::StreamsRe
     
     m_buttonBox->button(QDialogButtonBox::Ok)->setEnabled(m_streamModel->rowCount() > 0);
     hideProgressIndicator();
-}
-
-void SoundCloudDownloadDialog::addDownload() {
-    QString streamId = m_streamSelector->currentValue().toMap().value("id").toString();
-    QString category = m_categorySelector->valueText();
-    Transfers::instance()->addDownloadTransfer(Resources::SOUNDCLOUD, m_id, streamId, QUrl(), m_title, category);
-    accept();
 }

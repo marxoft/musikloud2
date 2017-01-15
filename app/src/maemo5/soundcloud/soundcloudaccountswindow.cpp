@@ -54,6 +54,7 @@ SoundCloudAccountsWindow::SoundCloudAccountsWindow(StackedWindow *parent) :
     m_layout = new QVBoxLayout(centralWidget());
     m_layout->addWidget(m_label);
     m_layout->addWidget(m_view);
+    m_layout->setContentsMargins(0, 11, 0, 0);
     
     connect(m_model, SIGNAL(countChanged(int)), this, SLOT(onModelCountChanged(int)));
     connect(m_view, SIGNAL(activated(QModelIndex)), this, SLOT(selectAccount(QModelIndex)));
@@ -66,10 +67,10 @@ SoundCloudAccountsWindow::SoundCloudAccountsWindow(StackedWindow *parent) :
 void SoundCloudAccountsWindow::initAuthRequest() {
     if (!m_authRequest) {
         m_authRequest = new QSoundCloud::AuthenticationRequest(this);
-        m_authRequest->setClientId(SoundCloud::instance()->clientId());
-        m_authRequest->setClientSecret(SoundCloud::instance()->clientSecret());
-        m_authRequest->setRedirectUri(SoundCloud::instance()->redirectUri());
-        m_authRequest->setScopes(SoundCloud::instance()->scopes());
+        m_authRequest->setClientId(SoundCloud::clientId());
+        m_authRequest->setClientSecret(SoundCloud::clientSecret());
+        m_authRequest->setRedirectUri(SoundCloud::redirectUri());
+        m_authRequest->setScopes(SoundCloud::scopes());
         connect(m_authRequest, SIGNAL(finished()), this, SLOT(onAuthRequestFinished()));
     }
 }
@@ -77,11 +78,11 @@ void SoundCloudAccountsWindow::initAuthRequest() {
 void SoundCloudAccountsWindow::initUserRequest() {
     if (!m_userRequest) {
         m_userRequest = new QSoundCloud::ResourcesRequest(this);
-        m_userRequest->setClientId(SoundCloud::instance()->clientId());
-        m_userRequest->setClientSecret(SoundCloud::instance()->clientSecret());
+        m_userRequest->setClientId(SoundCloud::clientId());
+        m_userRequest->setClientSecret(SoundCloud::clientSecret());
         
         if (m_authRequest) {
-            QVariantMap token = m_authRequest->result().toMap();
+            const QVariantMap token = m_authRequest->result().toMap();
             m_userRequest->setAccessToken(token.value("access_token").toString());
             m_userRequest->setRefreshToken(token.value("refresh_token").toString());
         }
@@ -92,7 +93,7 @@ void SoundCloudAccountsWindow::initUserRequest() {
 
 void SoundCloudAccountsWindow::removeAccount() {
     if (m_view->currentIndex().isValid()) {
-        QString username = m_view->currentIndex().data(SoundCloudAccountModel::UsernameRole).toString();
+        const QString username = m_view->currentIndex().data(SoundCloudAccountModel::UsernameRole).toString();
         
         if (m_model->removeAccount(m_view->currentIndex().row())) {
             QMaemo5InformationBox::information(this, tr("Account '%1' removed. Please visit the SoundCloud website to \
@@ -116,19 +117,18 @@ void SoundCloudAccountsWindow::selectAccount(const QModelIndex &index) {
 }
 
 void SoundCloudAccountsWindow::showAuthDialog() {
-    SoundCloudAuthDialog *dialog = new SoundCloudAuthDialog(this);
-    dialog->open();
-    connect(dialog, SIGNAL(codeReady(QString)), this, SLOT(submitCode(QString)));
-}
+    SoundCloudAuthDialog dialog(this);
+    dialog.login();
 
-void SoundCloudAccountsWindow::submitCode(const QString &code) {
-    initAuthRequest();
-    showProgressIndicator();
-    m_authRequest->exchangeCodeForAccessToken(code);
+    if (dialog.exec() == QDialog::Accepted) {
+        initAuthRequest();
+        showProgressIndicator();
+        m_authRequest->exchangeCodeForAccessToken(dialog.code());
+    }
 }
 
 void SoundCloudAccountsWindow::onAuthRequestFinished() {
-    QVariantMap result = m_authRequest->result().toMap();
+    const QVariantMap result = m_authRequest->result().toMap();
     
     if (m_authRequest->status() == QSoundCloud::AuthenticationRequest::Ready) {        
         if (result.contains("access_token")) {
@@ -147,7 +147,7 @@ void SoundCloudAccountsWindow::onAuthRequestFinished() {
 
 void SoundCloudAccountsWindow::onUserRequestFinished() {
     if (m_userRequest->status() == QSoundCloud::ResourcesRequest::Ready) {
-        QVariantMap user = m_userRequest->result().toMap();
+        const QVariantMap user = m_userRequest->result().toMap();
         
         if (!user.isEmpty()) {
             m_view->setEnabled(true);
@@ -156,7 +156,7 @@ void SoundCloudAccountsWindow::onUserRequestFinished() {
             
             if (m_model->addAccount(user.value("id").toString(), user.value("username").toString(),
                                     m_userRequest->accessToken(), m_userRequest->refreshToken(),
-                                    SoundCloud::instance()->scopes().join(" "))) {
+                                    SoundCloud::scopes().join(" "))) {
                 QMaemo5InformationBox::information(this, tr("You are signed in to account '%1'")
                                                            .arg(user.value("username").toString()));
             }

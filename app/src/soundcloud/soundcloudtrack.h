@@ -30,17 +30,16 @@ class SoundCloudTrack : public MKTrack
     Q_PROPERTY(qint64 favouriteCount READ favouriteCount NOTIFY favouriteCountChanged)
     Q_PROPERTY(QString sharing READ sharing NOTIFY sharingChanged)
     Q_PROPERTY(QSoundCloud::ResourcesRequest::Status status READ status NOTIFY statusChanged)
-    Q_PROPERTY(bool streamable READ isStreamable NOTIFY streamableChanged)
     Q_PROPERTY(QUrl waveformUrl READ waveformUrl NOTIFY waveformUrlChanged)
 
 public:
     explicit SoundCloudTrack(QObject *parent = 0);
     explicit SoundCloudTrack(const QString &id, QObject *parent = 0);
     explicit SoundCloudTrack(const QVariantMap &track, QObject *parent = 0);
-    explicit SoundCloudTrack(SoundCloudTrack *track, QObject *parent = 0);
+    explicit SoundCloudTrack(const SoundCloudTrack *track, QObject *parent = 0);
     
     bool isCommentable() const;
-        
+    
     QString errorString() const;
     
     bool isFavourite() const;
@@ -49,9 +48,7 @@ public:
     QString sharing() const;
             
     QSoundCloud::ResourcesRequest::Status status() const;
-    
-    bool isStreamable() const;
-    
+        
     QUrl waveformUrl() const;
     
     Q_INVOKABLE void loadTrack(const QString &id);
@@ -61,20 +58,7 @@ public:
 public Q_SLOTS:
     void favourite();
     void unfavourite();
-    
-private:
-    void initRequest();
-    
-    void setCommentable(bool c);
-    
-    void setFavourite(bool f);
-    void setFavouriteCount(qint64 c);
-    
-    void setSharing(const QString &s);
-    
-    void setStreamable(bool s);
-    
-    void setWaveformUrl(const QUrl &u);
+    void cancel();
         
 private Q_SLOTS:
     void onTrackRequestFinished();
@@ -91,12 +75,21 @@ Q_SIGNALS:
     void sharingChanged();
     
     void statusChanged(QSoundCloud::ResourcesRequest::Status s);
-    
-    void streamableChanged();
-    
+        
     void waveformUrlChanged();
 
 private:
+    void initRequest();
+    
+    void setCommentable(bool c);
+    
+    void setFavourite(bool f);
+    void setFavouriteCount(qint64 c);
+    
+    void setSharing(const QString &s);
+        
+    void setWaveformUrl(const QUrl &u);
+    
     QSoundCloud::ResourcesRequest *m_request;
     
     bool m_commentable;
@@ -105,9 +98,7 @@ private:
     qint64 m_favouriteCount;
     
     QString m_sharing;
-    
-    bool m_streamable;
-    
+        
     QUrl m_waveformUrl;
 };
 

@@ -32,10 +32,11 @@ class MKComment : public QObject
     Q_PROPERTY(QString service READ service NOTIFY serviceChanged)
     Q_PROPERTY(QUrl thumbnailUrl READ thumbnailUrl NOTIFY thumbnailUrlChanged)
     Q_PROPERTY(QString trackId READ trackId NOTIFY trackIdChanged)
+    Q_PROPERTY(QUrl url READ url NOTIFY urlChanged)
     
 public:
     explicit MKComment(QObject *parent = 0);
-    explicit MKComment(MKComment *comment, QObject *parent = 0);
+    explicit MKComment(const MKComment *comment, QObject *parent = 0);
     
     QString artist() const;
     QString artistId() const;
@@ -43,14 +44,16 @@ public:
     QString body() const;
     
     QString date() const;
-            
+    
     QString id() const;
-                
+    
     QString service() const;
     
     QUrl thumbnailUrl() const;
     
     QString trackId() const;
+
+    QUrl url() const;
     
     Q_INVOKABLE virtual void loadComment(MKComment *comment);
     
@@ -69,10 +72,14 @@ protected:
     void setThumbnailUrl(const QUrl &u);
     
     void setTrackId(const QString &i);
+
+    void setUrl(const QUrl &u);
     
 Q_SIGNALS:
     void artistChanged();
     void artistIdChanged();
+    
+    void changed();
     
     void bodyChanged();
     
@@ -86,7 +93,9 @@ Q_SIGNALS:
     
     void trackIdChanged();
 
-protected:
+    void urlChanged();
+
+private:
     QString m_artist;
     QString m_artistId;
     
@@ -101,6 +110,8 @@ protected:
     QUrl m_thumbnailUrl;
     
     QString m_trackId;
+
+    QUrl m_url;
 };
 
 #endif // MKCOMMENT_H

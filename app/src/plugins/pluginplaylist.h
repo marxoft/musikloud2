@@ -24,6 +24,8 @@ class PluginPlaylist : public MKPlaylist
 {
     Q_OBJECT
     
+    Q_PROPERTY(QVariantList actions READ actions NOTIFY actionsChanged)
+    Q_PROPERTY(QString tracksId READ tracksId NOTIFY tracksIdChanged)
     Q_PROPERTY(QString errorString READ errorString NOTIFY statusChanged)
     Q_PROPERTY(ResourcesRequest::Status status READ status NOTIFY statusChanged)
 
@@ -31,7 +33,11 @@ public:
     explicit PluginPlaylist(QObject *parent = 0);
     explicit PluginPlaylist(const QString &service, const QString &id, QObject *parent = 0);
     explicit PluginPlaylist(const QString &service, const QVariantMap &playlist, QObject *parent = 0);
-    explicit PluginPlaylist(PluginPlaylist *playlist, QObject *parent = 0);
+    explicit PluginPlaylist(const PluginPlaylist *playlist, QObject *parent = 0);
+    
+    QVariantList actions() const;
+    
+    QString tracksId() const;
     
     QString errorString() const;
         
@@ -40,15 +46,33 @@ public:
     Q_INVOKABLE void loadPlaylist(const QString &service, const QString &id);
     Q_INVOKABLE void loadPlaylist(const QString &service, const QVariantMap &playlist);
     Q_INVOKABLE void loadPlaylist(PluginPlaylist *playlist);
-            
+
+public Q_SLOTS:
+    void cancel();
+    void del(const QString &resourceType, const QString &resourceId);
+    void insert(const QString &resourceType, const QString &resourceId);
+
+protected:
+    void setActions(const QVariantList &a);
+    
+    void setTracksId(const QString &i);
+
 private Q_SLOTS:
     void onRequestFinished();
     
 Q_SIGNALS:
+    void actionsChanged();
+    void tracksIdChanged();
     void statusChanged(ResourcesRequest::Status s);
 
 private:
+    ResourcesRequest* request();
+    
     ResourcesRequest *m_request;
+    
+    QVariantList m_actions;
+    
+    QString m_tracksId;
 };
 
 #endif // PLUGINPLAYLIST_H

@@ -21,14 +21,15 @@ MKArtist::MKArtist(QObject *parent) :
 {
 }
 
-MKArtist::MKArtist(MKArtist *artist, QObject *parent) :
+MKArtist::MKArtist(const MKArtist *artist, QObject *parent) :
     QObject(parent),
     m_description(artist->description()),
     m_id(artist->id()),
     m_largeThumbnailUrl(artist->largeThumbnailUrl()),
     m_thumbnailUrl(artist->thumbnailUrl()),
     m_name(artist->name()),
-    m_service(artist->service())
+    m_service(artist->service()),
+    m_url(artist->url())
 {
 }
 
@@ -39,6 +40,7 @@ QString MKArtist::description() const {
 void MKArtist::setDescription(const QString &d) {
     if (d != description()) {
         m_description = d;
+        emit changed();
         emit descriptionChanged();
     }
 }
@@ -50,6 +52,7 @@ QString MKArtist::id() const {
 void MKArtist::setId(const QString &i) {
     if (i != id()) {
         m_id = i;
+        emit changed();
         emit idChanged();
     }
 }
@@ -61,6 +64,7 @@ QUrl MKArtist::largeThumbnailUrl() const {
 void MKArtist::setLargeThumbnailUrl(const QUrl &u) {
     if (u != largeThumbnailUrl()) {
         m_largeThumbnailUrl = u;
+        emit changed();
         emit largeThumbnailUrlChanged();
     }
 }
@@ -72,6 +76,7 @@ QUrl MKArtist::thumbnailUrl() const {
 void MKArtist::setThumbnailUrl(const QUrl &u) {
     if (u != thumbnailUrl()) {
         m_thumbnailUrl = u;
+        emit changed();
         emit thumbnailUrlChanged();
     }
 }
@@ -83,6 +88,7 @@ QString MKArtist::name() const {
 void MKArtist::setName(const QString &u) {
     if (u != name()) {
         m_name = u;
+        emit changed();
         emit nameChanged();
     }
 }
@@ -94,7 +100,20 @@ QString MKArtist::service() const {
 void MKArtist::setService(const QString &s) {
     if (s != service()) {
         m_service = s;
+        emit changed();
         emit serviceChanged();
+    }
+}
+
+QUrl MKArtist::url() const {
+    return m_url;
+}
+
+void MKArtist::setUrl(const QUrl &u) {
+    if (u != url()) {
+        m_url = u;
+        emit changed();
+        emit urlChanged();
     }
 }
 
@@ -105,4 +124,5 @@ void MKArtist::loadArtist(MKArtist *artist) {
     setThumbnailUrl(artist->thumbnailUrl());
     setName(artist->name());
     setService(artist->service());
+    setUrl(artist->url());
 }

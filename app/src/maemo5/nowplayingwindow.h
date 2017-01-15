@@ -27,8 +27,6 @@ class QSlider;
 class QProgressBar;
 class QListView;
 class QLabel;
-class QAction;
-class QMenu;
 class QHBoxLayout;
 class QGridLayout;
 
@@ -40,7 +38,8 @@ public:
     explicit NowPlayingWindow(StackedWindow *parent = 0);
     
 private Q_SLOTS:
-    void removeTrack();
+    void downloadTrack(const QModelIndex &index);
+    void removeTrack(const QModelIndex &index);
     
     void setCurrentIndex(const QModelIndex &index);
     
@@ -54,15 +53,18 @@ private Q_SLOTS:
     void onCountChanged(int count);
     void onCurrentIndexChanged(int index);
     void onDurationChanged(qint64 duration);
+    void onMetaDataChanged();
     void onPositionChanged(qint64 position);
     void onSeekableChanged(bool isSeekable);
+    void onSleepTimerRemainingChanged(int remaining);
+    void onSliderValueChanged(int value);
     void onStatusChanged(AudioPlayer::Status status);
     void onScreenLockStateChanged(bool isLocked);
 
 private:
     void connectPlaybackSignals();
     void disconnectPlaybackSignals();
-    
+        
     Image *m_thumbnail;
     QWidget *m_container;
     QGridLayout *m_grid;
@@ -74,9 +76,9 @@ private:
     QSlider *m_positionSlider;
     QProgressBar *m_bufferBar;
     QListView *m_view;
-    QMenu *m_contextMenu;
-    QAction *m_removeAction;
     QAction *m_clearAction;
+    QAction *m_stopAfterCurrentAction;
+    QAction *m_sleepTimerAction;
     QWidget *m_toolBar;
     QHBoxLayout *m_hbox;
     QToolButton *m_previousButton;
@@ -84,6 +86,8 @@ private:
     QToolButton *m_nextButton;
     QToolButton *m_shuffleButton;
     QToolButton *m_repeatButton;
+    
+    static const QString TOOL_BUTTON_STYLE_SHEET;
 };
 
 #endif // NOWPLAYINGWINDOW_H

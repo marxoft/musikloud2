@@ -1,0 +1,19 @@
+musikloud2-mixcloud (0.0.4) unstable; urgency=low
+  * Improve audio streams retrieval.
+
+ -- Stuart Howarth <showarth@marxoft.co.uk>  Fri, 13 Jan 2017 01:27:25 +0000
+
+musikloud2-mixcloud (0.0.3) unstable; urgency=low
+  * Use JavaScript plugin API.
+
+ -- Stuart Howarth <showarth@marxoft.co.uk>  Wed, 04 Jan 2017 00:21:53 +0000
+
+musikloud2-mixcloud (0.0.2) unstable; urgency=low
+  * Remove get/list/search for artists.
+
+ -- Stuart Howarth <showarth@marxoft.co.uk>  Sun, 09 Aug 2015 15:57:43 +0000
+
+musikloud2-mixcloud (0.0.1) unstable; urgency=low
+  * Initial release.
+
+ -- Stuart Howarth <showarth@marxoft.co.uk>  Mon, 29 Jun 2015 00:40:43 +0000

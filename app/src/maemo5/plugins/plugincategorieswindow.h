@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Stuart Howarth <showarth@marxoft.co.uk>
+ * Copyright (C) 2016 Stuart Howarth <showarth@marxoft.co.uk>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,7 +20,6 @@
 #include "stackedwindow.h"
 #include "plugincategorymodel.h"
 
-class NowPlayingAction;
 class ListView;
 class QLabel;
 class QVBoxLayout;
@@ -43,7 +42,6 @@ private Q_SLOTS:
 private:
     PluginCategoryModel *m_model;
     
-    NowPlayingAction *m_nowPlayingAction;
     ListView *m_view;
     QAction *m_reloadAction;
     QLabel *m_label;

@@ -29,11 +29,10 @@
 #include "plugindownloaddialog.h"
 #include "pluginplaylistwindow.h"
 #include "resources.h"
-#include "resourcesplugins.h"
-#include "settings.h"
 #include "textbrowser.h"
-#include "utils.h"
 #include "trackdelegate.h"
+#include "transfers.h"
+#include "utils.h"
 #include <QScrollArea>
 #include <QTabBar>
 #include <QStackedWidget>
@@ -67,22 +66,17 @@ PluginTrackWindow::PluginTrackWindow(const QString &service, const QString &id, 
     m_descriptionLabel(new TextBrowser(this)),
     m_dateLabel(new QLabel(this)),
     m_artistLabel(new QLabel(this)),
-    m_noTracksLabel(new QLabel(QString("<p align='center'; style='font-size: 40px; color: %1'>%2</p>")
-                                      .arg(palette().color(QPalette::Mid).name()).arg(tr("No tracks found")), this)),
-    m_noCommentsLabel(0),
+    m_noResultsLabel(new QLabel(QString("<p align='center'; style='font-size: 40px; color: %1'>%2</p>")
+                                .arg(palette().color(QPalette::Mid).name()).arg(tr("No results")), this)),
     m_reloadAction(new QAction(tr("Reload"), this)),
     m_queueAction(new QAction(tr("Queue"), this)),
     m_downloadAction(0),
-    m_shareAction(new QAction(tr("Copy URL"), this)),
-    m_contextMenu(new QMenu(this)),
-    m_relatedQueueAction(new QAction(tr("Queue"), this)),
-    m_relatedDownloadAction(new QAction(tr("Download"), this)),
-    m_relatedShareAction(new QAction(tr("Copy URL"), this))
+    m_shareAction(new QAction(tr("Copy URL"), this))
 {
     loadBaseUi();
     connect(m_track, SIGNAL(statusChanged(ResourcesRequest::Status)),
             this, SLOT(onTrackStatusChanged(ResourcesRequest::Status)));
-            
+    
     m_track->loadTrack(service, id);
 }
 
@@ -109,17 +103,12 @@ PluginTrackWindow::PluginTrackWindow(PluginTrack *track, StackedWindow *parent) 
     m_descriptionLabel(new TextBrowser(this)),
     m_dateLabel(new QLabel(this)),
     m_artistLabel(new QLabel(this)),
-    m_noTracksLabel(new QLabel(QString("<p align='center'; style='font-size: 40px; color: %1'>%2</p>")
-                                      .arg(palette().color(QPalette::Mid).name()).arg(tr("No tracks found")), this)),
-    m_noCommentsLabel(0),
+    m_noResultsLabel(new QLabel(QString("<p align='center'; style='font-size: 40px; color: %1'>%2</p>")
+                                .arg(palette().color(QPalette::Mid).name()).arg(tr("No results")), this)),
     m_reloadAction(new QAction(tr("Reload"), this)),
     m_queueAction(new QAction(tr("Queue"), this)),
     m_downloadAction(0),
-    m_shareAction(new QAction(tr("Copy URL"), this)),
-    m_contextMenu(new QMenu(this)),
-    m_relatedQueueAction(new QAction(tr("Queue"), this)),
-    m_relatedDownloadAction(new QAction(tr("Download"), this)),
-    m_relatedShareAction(new QAction(tr("Copy URL"), this))
+    m_shareAction(new QAction(tr("Copy URL"), this))
 {
     loadBaseUi();
     loadTrackUi();
@@ -128,7 +117,7 @@ PluginTrackWindow::PluginTrackWindow(PluginTrack *track, StackedWindow *parent) 
     if (!track->artistId().isEmpty()) {
         connect(m_artist, SIGNAL(statusChanged(ResourcesRequest::Status)), this,
                 SLOT(onArtistStatusChanged(ResourcesRequest::Status)));
-            
+        
         m_artist->loadArtist(track->service(), track->artistId());
     }
 }
@@ -154,14 +143,11 @@ void PluginTrackWindow::loadBaseUi() {
     
     m_titleLabel->setWordWrap(true);
     m_dateLabel->setStyleSheet(QString("color: %1; font-size: 13pt").arg(palette().color(QPalette::Mid).name()));
+    m_dateLabel->hide();
     m_artistLabel->setStyleSheet("font-size: 13pt");
     m_artistLabel->hide();
 
     m_reloadAction->setEnabled(false);
-    
-    m_contextMenu->addAction(m_relatedQueueAction);
-    m_contextMenu->addAction(m_relatedDownloadAction);
-    m_contextMenu->addAction(m_relatedShareAction);
     
     QWidget *scrollWidget = new QWidget(m_scrollArea);
     QGridLayout *grid = new QGridLayout(scrollWidget);
@@ -184,7 +170,7 @@ void PluginTrackWindow::loadBaseUi() {
     m_tabBar->setStyleSheet("QTabBar::tab { height: 40px; }");
     
     m_stack->addWidget(m_relatedView);
-    m_stack->addWidget(m_noTracksLabel);
+    m_stack->addWidget(m_noResultsLabel);
     
     m_layout = new QGridLayout(centralWidget());
     m_layout->addWidget(m_scrollArea, 0, 0, 2, 1);
@@ -211,9 +197,6 @@ void PluginTrackWindow::loadBaseUi() {
     connect(m_descriptionLabel, SIGNAL(anchorClicked(QUrl)), this, SLOT(showResource(QUrl)));
     connect(m_queueAction, SIGNAL(triggered()), this, SLOT(queueTrack()));
     connect(m_shareAction, SIGNAL(triggered()), this, SLOT(shareTrack()));
-    connect(m_relatedQueueAction, SIGNAL(triggered()), this, SLOT(queueRelatedTrack()));
-    connect(m_relatedDownloadAction, SIGNAL(triggered()), this, SLOT(downloadRelatedTrack()));
-    connect(m_relatedShareAction, SIGNAL(triggered()), this, SLOT(shareRelatedTrack()));
     
     if (m_track->isDownloadable()) {
         m_downloadAction = new QAction(tr("Download"), this);
@@ -234,18 +217,31 @@ void PluginTrackWindow::loadTrackUi() {
     setWindowTitle(m_track->title());
     
     m_titleLabel->setText(m_track->title());
-    m_dateLabel->setText(tr("Published on %1").arg(m_track->date()));
     m_descriptionLabel->setHtml(Utils::toRichText(m_track->description()));
     m_thumbnail->setSource(m_track->largeThumbnailUrl());
     
-    if (ResourcesPlugins::instance()->resourceTypeIsSupported(m_track->service(), Resources::COMMENT)) {
+    const QString date = m_track->date();
+    
+    if (!date.isEmpty()) {
+        m_dateLabel->setText(tr("Published on %1").arg(date));
+        m_dateLabel->show();
+    }
+    
+    if (!m_track->commentsId().isEmpty()) {
         m_tabBar->addTab(tr("Comments"));
     }
 }
 
 void PluginTrackWindow::getRelatedTracks() {
-    m_relatedModel->setService(m_track->service());
-    m_relatedModel->list(m_track->id());
+    const QString id = m_track->relatedTracksId();
+    
+    if (!id.isEmpty()) {
+        m_relatedModel->setService(m_track->service());
+        m_relatedModel->list(id);
+    }
+    else {
+        m_stack->setCurrentWidget(m_noResultsLabel);
+    }
 }
 
 void PluginTrackWindow::downloadTrack() {
@@ -253,9 +249,14 @@ void PluginTrackWindow::downloadTrack() {
         return;
     }
     
-    PluginDownloadDialog *dialog = new PluginDownloadDialog(m_track->service(), m_track->id(), m_track->streamUrl(),
-                                                            m_track->title(), this);
-    dialog->open();
+    PluginDownloadDialog dialog(m_track->service(), this);
+    dialog.list(m_track->id(), m_track->streamUrl().isEmpty());
+
+    if (dialog.exec() == QDialog::Accepted) {
+        Transfers::instance()->addDownloadTransfer(m_track->service(), m_track->id(), dialog.streamId(),
+                                                   m_track->streamUrl(), m_track->title(), dialog.category(),
+                                                   dialog.customCommand(), dialog.customCommandOverrideEnabled());
+    }
 }
 
 void PluginTrackWindow::playTrack() {
@@ -282,14 +283,24 @@ void PluginTrackWindow::shareTrack() {
     QMaemo5InformationBox::information(this, tr("URL copied to clipboard"));
 }
 
-void PluginTrackWindow::downloadRelatedTrack() {
-    if ((!isBusy()) && (m_relatedView->currentIndex().isValid())) {
-        QString id = m_relatedView->currentIndex().data(PluginTrackModel::IdRole).toString();
-        QString title = m_relatedView->currentIndex().data(PluginTrackModel::TitleRole).toString();
-        QUrl streamUrl = m_relatedView->currentIndex().data(PluginTrackModel::StreamUrlRole).toString();
+void PluginTrackWindow::downloadRelatedTrack(const QModelIndex &index) {
+    if (isBusy()) {
+        return;
+    }
         
-        PluginDownloadDialog *dialog = new PluginDownloadDialog(m_track->service(), id, streamUrl, title, this);
-        dialog->open();
+    if (index.isValid()) {
+        const QString id = index.data(PluginTrackModel::IdRole).toString();
+        const QString title = index.data(PluginTrackModel::TitleRole).toString();
+        const QUrl streamUrl = index.data(PluginTrackModel::StreamUrlRole).toString();
+        
+        PluginDownloadDialog dialog(m_relatedModel->service(), this);
+        dialog.list(id, streamUrl.isEmpty());
+        
+        if (dialog.exec() == QDialog::Accepted) {
+            Transfers::instance()->addDownloadTransfer(m_relatedModel->service(), id, dialog.streamId(), streamUrl,
+                                                       title, dialog.category(), dialog.customCommand(),
+                                                       dialog.customCommandOverrideEnabled());
+        }
     }
 }
 
@@ -305,19 +316,19 @@ void PluginTrackWindow::playRelatedTrack(const QModelIndex &index) {
     }
 }
 
-void PluginTrackWindow::queueRelatedTrack() {
+void PluginTrackWindow::queueRelatedTrack(const QModelIndex &index) {
     if (isBusy()) {
         return;
     }
     
-    if (PluginTrack *track = m_relatedModel->get(m_relatedView->currentIndex().row())) {
+    if (PluginTrack *track = m_relatedModel->get(index.row())) {
         AudioPlayer::instance()->addTrack(track);
         QMaemo5InformationBox::information(this, tr("'%1' added to playback queue").arg(track->title()));
     }
 }
 
-void PluginTrackWindow::shareRelatedTrack() {
-    if (const PluginTrack *track = m_relatedModel->get(m_relatedView->currentIndex().row())) {
+void PluginTrackWindow::shareRelatedTrack(const QModelIndex &index) {
+    if (const PluginTrack *track = m_relatedModel->get(index.row())) {
         Clipboard::instance()->setText(track->url().toString());
         QMaemo5InformationBox::information(this, tr("URL copied to clipboard"));
     }
@@ -346,10 +357,53 @@ void PluginTrackWindow::reload() {
 }
 
 void PluginTrackWindow::showContextMenu(const QPoint &pos) {
-    if ((!isBusy()) && (m_relatedView->currentIndex().isValid())) {
-        m_relatedDownloadAction->setEnabled(m_relatedModel->data(m_relatedView->currentIndex(),
-                                                                 PluginTrackModel::DownloadableRole).toBool());
-        m_contextMenu->popup(pos, m_relatedQueueAction);
+    if (isBusy()) {
+        return;
+    }
+    
+    const QModelIndex index = m_relatedView->currentIndex();
+    
+    if (!index.isValid()) {
+        return;
+    }
+    
+    if (index.data(PluginTrackModel::DownloadableRole).toBool()) {
+        QMenu menu(this);
+        QAction *queueAction = menu.addAction(tr("Queue"));
+        QAction *downloadAction = menu.addAction(tr("Download"));
+        QAction *shareAction = menu.addAction(tr("Copy URL"));
+        QAction *action = menu.exec(pos);
+        
+        if (!action) {
+            return;
+        }
+        
+        if (action == queueAction) {
+            queueRelatedTrack(index);
+        }
+        else if (action == downloadAction) {
+            downloadRelatedTrack(index);
+        }
+        else if (action == shareAction) {
+            shareRelatedTrack(index);
+        }
+    }
+    else {
+        QMenu menu(this);
+        QAction *queueAction = menu.addAction(tr("Queue"));
+        QAction *shareAction = menu.addAction(tr("Copy URL"));
+        QAction *action = menu.exec(pos);
+        
+        if (!action) {
+            return;
+        }
+        
+        if (action == queueAction) {
+            queueRelatedTrack(index);
+        }
+        else if (action == shareAction) {
+            shareRelatedTrack(index);
+        }
     }
 }
 
@@ -367,9 +421,12 @@ void PluginTrackWindow::showArtist(const QModelIndex &index) {
         return;
     }
     
-    PluginArtistWindow *window = new PluginArtistWindow(m_track->service(),
-                                                    index.data(PluginCommentModel::ArtistIdRole).toString(), this);
-    window->show();
+    const QString id = index.data(PluginCommentModel::ArtistIdRole).toString();
+    
+    if (!id.isEmpty()) {
+        PluginArtistWindow *window = new PluginArtistWindow(m_track->service(), id, this);
+        window->show();
+    }
 }
 
 void PluginTrackWindow::showComments() {
@@ -382,20 +439,17 @@ void PluginTrackWindow::showComments() {
         m_commentView->setUniformItemSizes(false);
         m_commentView->setModel(m_commentModel);
         m_commentView->setItemDelegate(m_commentDelegate);
-        m_noCommentsLabel = new QLabel(QString("<p align='center'; style='font-size: 40px; color: %1'>%2</p>")
-                                      .arg(palette().color(QPalette::Mid).name()).arg(tr("No comments found")), this);
         m_stack->addWidget(m_commentView);
-        m_stack->addWidget(m_noCommentsLabel);
         
         connect(m_commentDelegate, SIGNAL(thumbnailClicked(QModelIndex)), this, SLOT(showArtist(QModelIndex)));
         connect(m_commentModel, SIGNAL(statusChanged(ResourcesRequest::Status)),
                 this, SLOT(onCommentModelStatusChanged(ResourcesRequest::Status)));
                 
-        m_commentModel->list(m_track->id());
+        m_commentModel->list(m_track->commentsId());
     }
     
     if ((m_commentModel->rowCount() == 0) && (m_commentModel->status() != ResourcesRequest::Loading)) {
-        m_stack->setCurrentWidget(m_noCommentsLabel);
+        m_stack->setCurrentWidget(m_noResultsLabel);
     }
     else {
         m_stack->setCurrentWidget(m_commentView);
@@ -404,7 +458,7 @@ void PluginTrackWindow::showComments() {
 
 void PluginTrackWindow::showRelatedTracks() {
     if ((m_relatedModel->rowCount() == 0) && (m_relatedModel->status() != ResourcesRequest::Loading)) {
-        m_stack->setCurrentWidget(m_noTracksLabel);
+        m_stack->setCurrentWidget(m_noResultsLabel);
     }
     else {
         m_stack->setCurrentWidget(m_relatedView);
@@ -412,7 +466,7 @@ void PluginTrackWindow::showRelatedTracks() {
 }
 
 void PluginTrackWindow::showResource(const QUrl &url) {
-    QVariantMap resource = Resources::getResourceFromUrl(url.toString());
+    const QVariantMap resource = Resources::getResourceFromUrl(url.toString());
     
     if (resource.value("service") != m_track->service()) {
         QDesktopServices::openUrl(url);

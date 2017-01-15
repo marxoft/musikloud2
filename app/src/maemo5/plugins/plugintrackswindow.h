@@ -26,7 +26,6 @@ class NowPlayingAction;
 class ListView;
 class QLabel;
 class QVBoxLayout;
-class QMenu;
 
 class PluginTracksWindow : public StackedWindow
 {
@@ -41,10 +40,10 @@ public Q_SLOTS:
     void search(const QString &service, const QString &query, const QString &order);
     
 private Q_SLOTS:
-    void downloadTrack();
+    void downloadTrack(const QModelIndex &index);
     void playTrack(const QModelIndex &index);
-    void queueTrack();
-    void shareTrack();
+    void queueTrack(const QModelIndex &index);
+    void shareTrack(const QModelIndex &index);
     void showTrack(const QModelIndex &index);
     
     void showContextMenu(const QPoint &pos);
@@ -60,10 +59,6 @@ private:
     ListView *m_view;
     TrackDelegate *m_delegate;
     QAction *m_reloadAction;
-    QMenu *m_contextMenu;
-    QAction *m_queueAction;
-    QAction *m_downloadAction;
-    QAction *m_shareAction;
     QLabel *m_label;
     QVBoxLayout *m_layout;
 };

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Stuart Howarth <showarth@marxoft.co.uk>
+ * Copyright (C) 2016 Stuart Howarth <showarth@marxoft.co.uk>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,7 +20,6 @@ Dialog::Dialog(QWidget *parent) :
     QDialog(parent),
     m_progressCount(0)
 {
-    setAttribute(Qt::WA_DeleteOnClose, true);
 }
 
 bool Dialog::isBusy() const {
@@ -29,7 +28,10 @@ bool Dialog::isBusy() const {
 
 void Dialog::showProgressIndicator() {
     m_progressCount++;
-    setAttribute(Qt::WA_Maemo5ShowProgressIndicator, true);
+
+    if (isVisible()) {
+        setAttribute(Qt::WA_Maemo5ShowProgressIndicator, true);
+    }
 }
 
 void Dialog::hideProgressIndicator() {
@@ -39,5 +41,13 @@ void Dialog::hideProgressIndicator() {
         if (m_progressCount == 0) {
             setAttribute(Qt::WA_Maemo5ShowProgressIndicator, false);
         }
+    }
+}
+
+void Dialog::showEvent(QShowEvent *e) {
+    QDialog::showEvent(e);
+
+    if (m_progressCount > 0) {
+        setAttribute(Qt::WA_Maemo5ShowProgressIndicator, true);
     }
 }

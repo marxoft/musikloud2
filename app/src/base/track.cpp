@@ -19,21 +19,15 @@
 
 MKTrack::MKTrack(QObject *parent) :
     QObject(parent),
-    m_artist(tr("Unknown artist")),
-    m_date(tr("Unknown date")),
-    m_description(tr("No description")),
     m_downloadable(true),
     m_duration(0),
     m_durationString("--:--"),
-    m_format(tr("Unknown format")),
-    m_genre(tr("Unknown genre")),
     m_playCount(0),
-    m_size(0),
-    m_title(tr("Unknown title"))
+    m_size(0)
 {
 }
 
-MKTrack::MKTrack(MKTrack *track, QObject *parent) :
+MKTrack::MKTrack(const MKTrack *track, QObject *parent) :
     QObject(parent),
     m_artist(track->artist()),
     m_artistId(track->artistId()),
@@ -64,6 +58,7 @@ QString MKTrack::artist() const {
 void MKTrack::setArtist(const QString &a) {
     if (a != artist()) {
         m_artist = a;
+        emit changed();
         emit artistChanged();
     }
 }
@@ -75,6 +70,7 @@ QString MKTrack::artistId() const {
 void MKTrack::setArtistId(const QString &i) {
     if (i != artistId()) {
         m_artistId = i;
+        emit changed();
         emit artistIdChanged();
     }
 }
@@ -86,6 +82,7 @@ QString MKTrack::date() const {
 void MKTrack::setDate(const QString &d) {
     if (d != date()) {
         m_date = d;
+        emit changed();
         emit dateChanged();
     }
 }
@@ -97,6 +94,7 @@ QString MKTrack::description() const {
 void MKTrack::setDescription(const QString &d) {
     if (d != description()) {
         m_description = d;
+        emit changed();
         emit descriptionChanged();
     }
 }
@@ -108,6 +106,7 @@ bool MKTrack::isDownloadable() const {
 void MKTrack::setDownloadable(bool d) {
     if (d != isDownloadable()) {
         m_downloadable = d;
+        emit changed();
         emit downloadableChanged();
     }
 }
@@ -120,6 +119,7 @@ void MKTrack::setDuration(qint64 d) {
     if (d != duration()) {
         m_duration = d;
         m_durationString = Utils::formatMSecs(d);
+        emit changed();
         emit durationChanged();
     }
 }
@@ -131,6 +131,7 @@ QString MKTrack::durationString() const {
 void MKTrack::setDurationString(const QString &s) {
     if (s != durationString()) {
         m_durationString = s;
+        emit changed();
         emit durationChanged();
     }
 }
@@ -142,6 +143,7 @@ QString MKTrack::format() const {
 void MKTrack::setFormat(const QString &f) {
     if (f != format()) {
         m_format = f;
+        emit changed();
         emit formatChanged();
     }
 }
@@ -153,6 +155,7 @@ QString MKTrack::genre() const {
 void MKTrack::setGenre(const QString &g) {
     if (g != genre()) {
         m_genre = g;
+        emit changed();
         emit genreChanged();
     }
 }
@@ -164,6 +167,7 @@ QString MKTrack::id() const {
 void MKTrack::setId(const QString &i) {
     if (i != id()) {
         m_id = i;
+        emit changed();
         emit idChanged();
     }
 }
@@ -175,6 +179,7 @@ QUrl MKTrack::largeThumbnailUrl() const {
 void MKTrack::setLargeThumbnailUrl(const QUrl &u) {
     if (u != largeThumbnailUrl()) {
         m_largeThumbnailUrl = u;
+        emit changed();
         emit largeThumbnailUrlChanged();
     }
 }
@@ -197,6 +202,7 @@ qint64 MKTrack::playCount() const {
 void MKTrack::setPlayCount(qint64 c) {
     if (c != playCount()) {
         m_playCount = c;
+        emit changed();
         emit playCountChanged();
     }
 }
@@ -208,6 +214,7 @@ QString MKTrack::service() const {
 void MKTrack::setService(const QString &s) {
     if (s != service()) {
         m_service = s;
+        emit changed();
         emit serviceChanged();
     }
 }
@@ -220,6 +227,7 @@ void MKTrack::setSize(qint64 s) {
     if (s != size()) {
         m_size = s;
         m_sizeString = Utils::formatBytes(s);
+        emit changed();
         emit sizeChanged();
     }
 }
@@ -231,6 +239,7 @@ QString MKTrack::sizeString() const {
 void MKTrack::setSizeString(const QString &s) {
     if (s != sizeString()) {
         m_sizeString = s;
+        emit changed();
         emit sizeChanged();
     }
 }
@@ -242,6 +251,7 @@ QUrl MKTrack::streamUrl() const {
 void MKTrack::setStreamUrl(const QUrl &u) {
     if (u != streamUrl()) {
         m_streamUrl = u;
+        emit changed();
         emit streamUrlChanged();
     }
 }
@@ -253,6 +263,7 @@ QString MKTrack::title() const {
 void MKTrack::setTitle(const QString &t) {
     if (t != title()) {
         m_title = t;
+        emit changed();
         emit titleChanged();
     }
 }
@@ -264,6 +275,7 @@ QUrl MKTrack::url() const {
 void MKTrack::setUrl(const QUrl &u) {
     if (u != url()) {
         m_url = u;
+        emit changed();
         emit urlChanged();
     }
 }

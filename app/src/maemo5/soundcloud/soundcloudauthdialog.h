@@ -26,22 +26,27 @@ class QVBoxLayout;
 class SoundCloudAuthDialog : public Dialog
 {
     Q_OBJECT
+
+    Q_PROPERTY(QString code READ code)
     
 public:
     explicit SoundCloudAuthDialog(QWidget *parent = 0);
+
+    QString code() const;
     
-protected:
-    void showEvent(QShowEvent *e);
+public Q_SLOTS:
+    void login();
     
 private Q_SLOTS:
     void onWebViewUrlChanged(const QUrl &url);
     
-Q_SIGNALS:
-    void codeReady(const QString &code);
-    
 private:
+    void setCode(const QString &code);
+    
     WebView *m_view;
     QVBoxLayout *m_layout;
+
+    QString m_code;
 };
 
 #endif // SOUNDCLOUDAUTHDIALOG_H

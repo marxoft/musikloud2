@@ -58,11 +58,10 @@ void PlaylistDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opti
     textRect.setTop(textRect.top() + 8);
     textRect.setBottom(textRect.bottom() - 8);
     
-    QFontMetrics fm = painter->fontMetrics();
-    
-    QString trackCount = tr("%1 tracks").arg(index.data(m_trackCountRole).toInt());
-    QString title = fm.elidedText(index.data(m_titleRole).toString(), Qt::ElideRight,
-                                  textRect.width() - fm.width(trackCount) - 8);
+    const QFontMetrics fm = painter->fontMetrics();
+    const QString trackCount = tr("%1 tracks").arg(index.data(m_trackCountRole).toInt());
+    const QString title = fm.elidedText(index.data(m_titleRole).toString(), Qt::ElideRight,
+                                        textRect.width() - fm.width(trackCount) - 8);
     
     painter->drawText(textRect, Qt::AlignLeft | Qt::AlignTop, title);
     painter->drawText(textRect, Qt::AlignRight | Qt::AlignTop, trackCount);

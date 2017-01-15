@@ -20,7 +20,6 @@
 #include "nowplayingaction.h"
 #include "playlistdelegate.h"
 #include "pluginplaylistwindow.h"
-#include "settings.h"
 #include <QLabel>
 #include <QMessageBox>
 #include <QVBoxLayout>
@@ -34,7 +33,7 @@ PluginPlaylistsWindow::PluginPlaylistsWindow(StackedWindow *parent) :
     m_view(new ListView(this)),
     m_reloadAction(new QAction(tr("Reload"), this)),
     m_label(new QLabel(QString("<p align='center'; style='font-size: 40px; color: %1'>%2</p>")
-                              .arg(palette().color(QPalette::Mid).name()).arg(tr("No playlists found")), this))
+                              .arg(palette().color(QPalette::Mid).name()).arg(tr("No results")), this))
 {
     setWindowTitle(tr("Playlists"));
     setCentralWidget(new QWidget);

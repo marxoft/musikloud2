@@ -17,26 +17,25 @@
 #include "utils.h"
 #include <QRegExp>
 #include <QDir>
+#include <QUuid>
+#if QT_VERSION >= 0x050000
+#include <QMimeDatabase>
+#else
+const QStringList Utils::AUDIO_FILE_TYPES = QStringList() << "3gp" << "aa" << "aac" << "aax" << "aiff" << "ape"
+                                                          << "flac" << "m4a" << "m4p" << "mogg" << "mp3" << "oga"
+                                                          << "ogg" << "ra" << "rm" << "wav" << "wma";
+#endif
+const QStringList Utils::THUMBNAIL_NAMES = QStringList() << "cover" << "thumb" << "folder" << "front";
+const QStringList Utils::THUMBNAIL_TYPES = QStringList() << "*.jpg" << "*.jpeg" << "*.png";
 
 Utils::Utils(QObject *parent) :
     QObject(parent)
 {
 }
 
-QUrl Utils::findThumbnailUrl(const QUrl &url) {
-    if (!isLocalFile(url)) {
-        return QUrl();
-    }
-        
-    QDir dir(url.path().left(url.path().lastIndexOf('/')));
-    
-    foreach (QString fileName, QStringList() << "cover.jpg" << "folder.jpg" << "front.jpg") {
-        if (dir.exists(fileName)) {
-            return QUrl::fromLocalFile(dir.absoluteFilePath(fileName));
-        }
-    }
-    
-    return QUrl();
+QString Utils::createId() {
+    const QString uuid = QUuid::createUuid().toString();
+    return uuid.mid(1, uuid.size() - 2);
 }
 
 QString Utils::formatBytes(qint64 bytes) {
@@ -44,9 +43,9 @@ QString Utils::formatBytes(qint64 bytes) {
         return QString("0B");
     }
     
-    double kb = 1024;
-    double mb = kb * 1024;
-    double gb = mb * 1024;
+    const double kb = 1024;
+    const double mb = kb * 1024;
+    const double gb = mb * 1024;
 
     QString size;
 
@@ -71,8 +70,8 @@ QString Utils::formatLargeNumber(qint64 num) {
         return QString::number(num);
     }
     
-    double k = 1000;
-    double m = k * 1000;
+    const double k = 1000;
+    const double m = k * 1000;
 
     QString result;
 
@@ -86,22 +85,64 @@ QString Utils::formatLargeNumber(qint64 num) {
     return result;
 }
 
-QString Utils::formatMSecs(qint64 ms) {    
+QString Utils::formatMSecs(qint64 ms) {
     return ms > 0 ? formatSecs(ms / 1000) : QString("--:--");
 }
 
-QString Utils::formatSecs(qint64 s) {    
+QString Utils::formatSecs(qint64 s) {
     return s > 0 ? QString("%1:%2").arg(s / 60, 2, 10, QChar('0')).arg(s % 60, 2, 10, QChar('0')) : QString("--:--");
 }
 
+bool Utils::isAudioFile(const QString &fileName) {
+    return isAudioFile(QFileInfo(fileName));
+}
+
+bool Utils::isAudioFile(const QFileInfo &info) {
+#if QT_VERSION >= 0x050000
+    const QMimeDatabase db;
+    return db.mimeTypeForFile(info).name().startsWith("audio");
+#else
+    return AUDIO_FILE_TYPES.contains(info.suffix());
+#endif
+}
+
 bool Utils::isLocalFile(const QUrl &url) {
-    return (url.scheme() == "file") || (url.toString().startsWith("/"));
+    const QString scheme = url.scheme();
+    return (scheme == "file") || (scheme.size() <= 1);
+}
+
+QString Utils::toLocalFile(const QUrl &url) {
+    const QString scheme = url.scheme();
+
+    if (scheme == "file") {
+        return url.toLocalFile();
+    }
+
+    return url.toString();
+}
+
+QUrl Utils::thumbnailUrlForFile(const QString &fileName) {
+    return thumbnailUrlForFile(QFileInfo(fileName));
+}
+
+QUrl Utils::thumbnailUrlForFile(const QFileInfo &info) {
+    const QFileInfoList images = info.dir().entryInfoList(THUMBNAIL_TYPES, QDir::Files);
+    
+    foreach (const QString &name, THUMBNAIL_NAMES) {
+        foreach (const QFileInfo &image, images) {
+            if (image.completeBaseName().endsWith(name, Qt::CaseInsensitive)) {
+                return QUrl::fromLocalFile(image.absoluteFilePath());
+            }
+        }
+    }
+    
+    return QUrl();
 }
 
 QString Utils::toRichText(QString s) {
-    s.replace("&", "&amp;").replace("<", "&lt;").replace(QRegExp("[\n\r]"), "<br>");
+    s.replace("&", "&amp;").replace("< ", "&lt; ").replace(QRegExp("[\n\r]"), "<br>");
     
-    QRegExp re("((http(s|)://|[\\w-_\\.]+@)[^\\s<:\"']+)");
+    QRegExp re("(http(s|)://[^\\s<:\"']+|[\\w-_\\.]+@[\\w-_]+\\.[a-zA-Z]+)");
     int pos = 0;
 
     while ((pos = re.indexIn(s, pos)) != -1) {
@@ -109,7 +150,7 @@ QString Utils::toRichText(QString s) {
         s.replace(pos, link.size(), QString("<a href='%1'>%2</a>").arg(link.contains('@') ? "mailto:" + link : link).arg(link));
         pos += re.matchedLength() * 2 + 15;
     }
-
+    
     return s;
 }
 
@@ -119,7 +160,7 @@ QString Utils::unescape(const QString &s) {
 
     while ((us.contains('%')) && (unescapes < 10)) {
         us = QByteArray::fromPercentEncoding(us);
-        unescapes++;
+        ++unescapes;
     }
 
     return QString::fromUtf8(us);

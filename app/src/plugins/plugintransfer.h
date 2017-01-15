@@ -21,21 +21,29 @@
 
 class ResourcesRequest;
 
+namespace QSoundCloud {
+    class StreamsRequest;
+}
+
 class PluginTransfer : public Transfer
 {
     Q_OBJECT
     
 public:
     explicit PluginTransfer(const QString &service, QObject *parent = 0);
-    
-private:
-    void listStreams();
 
 private Q_SLOTS:
     void onStreamsRequestFinished();
+    void onSoundCloudStreamsRequestFinished();
 
 private:
+    void listStreams();
+    
+    ResourcesRequest* streamsRequest();
+    QSoundCloud::StreamsRequest* soundcloudStreamsRequest();
+    
     ResourcesRequest *m_streamsRequest;
+    QSoundCloud::StreamsRequest *m_soundcloudStreamsRequest;
 };
     
 #endif // PLUGINTRANSFER_H

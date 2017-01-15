@@ -15,16 +15,17 @@
  */
 
 #include "soundcloudstreammodel.h"
+#include "logger.h"
 #include "soundcloud.h"
 
 SoundCloudStreamModel::SoundCloudStreamModel(QObject *parent) :
     SelectionModel(parent),
     m_request(new QSoundCloud::StreamsRequest(this))
 {
-    m_request->setClientId(SoundCloud::instance()->clientId());
-    m_request->setClientSecret(SoundCloud::instance()->clientSecret());
-    m_request->setAccessToken(SoundCloud::instance()->accessToken());
-    m_request->setRefreshToken(SoundCloud::instance()->refreshToken());
+    m_request->setClientId(SoundCloud::clientId());
+    m_request->setClientSecret(SoundCloud::clientSecret());
+    m_request->setAccessToken(SoundCloud::accessToken());
+    m_request->setRefreshToken(SoundCloud::refreshToken());
         
     connect(m_request, SIGNAL(accessTokenChanged(QString)), SoundCloud::instance(), SLOT(setAccessToken(QString)));
     connect(m_request, SIGNAL(refreshTokenChanged(QString)), SoundCloud::instance(), SLOT(setRefreshToken(QString)));
@@ -44,6 +45,7 @@ void SoundCloudStreamModel::get(const QString &id) {
         return;
     }
     
+    Logger::log("SoundCloudStreamModel::get(). ID: " + id, Logger::MediumVerbosity);
     clear();
     m_id = id;
     m_request->get(id);
@@ -55,6 +57,11 @@ void SoundCloudStreamModel::cancel() {
 }
 
 void SoundCloudStreamModel::reload() {
+    if (status() == QSoundCloud::StreamsRequest::Loading) {
+        return;
+    }
+    
+    Logger::log("SoundCloudStreamModel::reload(). ID: " + m_id, Logger::MediumVerbosity);
     clear();
     m_request->get(m_id);
     emit statusChanged(status());
@@ -62,10 +69,13 @@ void SoundCloudStreamModel::reload() {
 
 void SoundCloudStreamModel::onRequestFinished() {
     if (m_request->status() == QSoundCloud::StreamsRequest::Ready) {
-        foreach (QVariant v, m_request->result().toList()) {
-            QVariantMap stream = v.toMap();
+        foreach (const QVariant &v, m_request->result().toList()) {
+            const QVariantMap stream = v.toMap();
             append(stream.value("description").toString(), stream);
         }
+    }
+    else {
+        Logger::log("SoundCloudStreamModel::onRequestFinished(). Error: " + errorString());
     }
     
     emit statusChanged(status());

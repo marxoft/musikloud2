@@ -15,11 +15,9 @@
  */
 
 #include "soundcloudtrackmodel.h"
+#include "logger.h"
 #include "soundcloud.h"
 #include <qsoundcloud/urls.h>
-#ifdef MUSIKLOUD_DEBUG
-#include <QDebug>
-#endif
 
 SoundCloudTrackModel::SoundCloudTrackModel(QObject *parent) :
     QAbstractListModel(parent),
@@ -33,6 +31,7 @@ SoundCloudTrackModel::SoundCloudTrackModel(QObject *parent) :
     m_roles[DownloadableRole] = "downloadable";
     m_roles[DurationRole] = "duration";
     m_roles[DurationStringRole] = "durationString";
+    m_roles[ErrorStringRole] = "errorString";
     m_roles[FavouriteRole] = "favourited";
     m_roles[FavouriteCountRole] = "favouriteCount";
     m_roles[GenreRole] = "genre";
@@ -42,7 +41,7 @@ SoundCloudTrackModel::SoundCloudTrackModel(QObject *parent) :
     m_roles[SharingRole] = "sharing";
     m_roles[SizeRole] = "size";
     m_roles[SizeStringRole] = "sizeString";
-    m_roles[StreamableRole] = "streamable";
+    m_roles[StatusRole] = "status";
     m_roles[ThumbnailUrlRole] = "thumbnailUrl";
     m_roles[TitleRole] = "title";
     m_roles[UrlRole] = "url";
@@ -50,10 +49,10 @@ SoundCloudTrackModel::SoundCloudTrackModel(QObject *parent) :
 #if QT_VERSION < 0x050000
     setRoleNames(m_roles);
 #endif
-    m_request->setClientId(SoundCloud::instance()->clientId());
-    m_request->setClientSecret(SoundCloud::instance()->clientSecret());
-    m_request->setAccessToken(SoundCloud::instance()->accessToken());
-    m_request->setRefreshToken(SoundCloud::instance()->refreshToken());
+    m_request->setClientId(SoundCloud::clientId());
+    m_request->setClientSecret(SoundCloud::clientSecret());
+    m_request->setAccessToken(SoundCloud::accessToken());
+    m_request->setRefreshToken(SoundCloud::refreshToken());
     
     connect(m_request, SIGNAL(accessTokenChanged(QString)), SoundCloud::instance(), SLOT(setAccessToken(QString)));
     connect(m_request, SIGNAL(refreshTokenChanged(QString)), SoundCloud::instance(), SLOT(setRefreshToken(QString)));
@@ -74,16 +73,20 @@ QHash<int, QByteArray> SoundCloudTrackModel::roleNames() const {
 }
 #endif
 
-int SoundCloudTrackModel::rowCount(const QModelIndex &) const {
-    return m_items.size();
+int SoundCloudTrackModel::rowCount(const QModelIndex &parent) const {
+    return parent.isValid() ? 0 : m_items.size();
 }
 
-bool SoundCloudTrackModel::canFetchMore(const QModelIndex &) const {
-    return (status() != QSoundCloud::ResourcesRequest::Loading) && (!m_nextHref.isEmpty());
+int SoundCloudTrackModel::columnCount(const QModelIndex &parent) const {
+    return parent.isValid() ? 0 : 4;
 }
 
-void SoundCloudTrackModel::fetchMore(const QModelIndex &) {
-    if (!canFetchMore()) {
+bool SoundCloudTrackModel::canFetchMore(const QModelIndex &parent) const {
+    return (!parent.isValid()) && (status() != QSoundCloud::ResourcesRequest::Loading) && (!m_nextHref.isEmpty());
+}
+
+void SoundCloudTrackModel::fetchMore(const QModelIndex &parent) {
+    if (!canFetchMore(parent)) {
         return;
     }
     
@@ -91,8 +94,42 @@ void SoundCloudTrackModel::fetchMore(const QModelIndex &) {
     emit statusChanged(status());
 }
 
+QVariant SoundCloudTrackModel::headerData(int section, Qt::Orientation orientation, int role) const {
+    if ((orientation != Qt::Horizontal) || (role != Qt::DisplayRole)) {
+        return QVariant();
+    }
+    
+    switch (section) {
+    case 0:
+        return tr("Title");
+    case 1:
+        return tr("Artist");
+    case 2:
+        return tr("Genre");
+    case 3:
+        return tr("Duration");
+    default:
+        return QVariant();
+    }
+}
+
 QVariant SoundCloudTrackModel::data(const QModelIndex &index, int role) const {
-    if (SoundCloudTrack *track = get(index.row())) {
+    if (const SoundCloudTrack *track = get(index.row())) {
+        if (role == Qt::DisplayRole) {
+            switch (index.column()) {
+            case 0:
+                return track->title();
+            case 1:
+                return track->artist();
+            case 2:
+                return track->genre();
+            case 3:
+                return track->durationString();
+            default:
+                return QVariant();
+            }
+        }
+        
         return track->property(m_roles[role]);
     }
     
@@ -102,7 +139,7 @@ QVariant SoundCloudTrackModel::data(const QModelIndex &index, int role) const {
 QMap<int, QVariant> SoundCloudTrackModel::itemData(const QModelIndex &index) const {
     QMap<int, QVariant> map;
     
-    if (SoundCloudTrack *track = get(index.row())) {
+    if (const SoundCloudTrack *track = get(index.row())) {
         QHashIterator<int, QByteArray> iterator(m_roles);
         
         while (iterator.hasNext()) {
@@ -115,7 +152,7 @@ QMap<int, QVariant> SoundCloudTrackModel::itemData(const QModelIndex &index) con
 }
 
 QVariant SoundCloudTrackModel::data(int row, const QByteArray &role) const {
-    if (SoundCloudTrack *track = get(row)) {
+    if (const SoundCloudTrack *track = get(row)) {
         return track->property(role);
     }
     
@@ -125,8 +162,8 @@ QVariant SoundCloudTrackModel::data(int row, const QByteArray &role) const {
 QVariantMap SoundCloudTrackModel::itemData(int row) const {
     QVariantMap map;
     
-    if (SoundCloudTrack *track = get(row)) {
-        foreach (QByteArray role, m_roles.values()) {
+    if (const SoundCloudTrack *track = get(row)) {
+        foreach (const QByteArray &role, m_roles.values()) {
             map[role] = track->property(role);
         }
     }
@@ -147,6 +184,7 @@ void SoundCloudTrackModel::get(const QString &resourcePath, const QVariantMap &f
         return;
     }
     
+    Logger::log("SoundCloudTrackModel::get(). Resource path: " + resourcePath, Logger::HighVerbosity);
     clear();
     m_resourcePath = resourcePath;
     m_filters = filters;
@@ -184,6 +222,11 @@ void SoundCloudTrackModel::cancel() {
 }
 
 void SoundCloudTrackModel::reload() {
+    if (status() == QSoundCloud::ResourcesRequest::Loading) {
+        return;
+    }
+    
+    Logger::log("SoundCloudTrackModel::reload(). Resource path: " + m_resourcePath, Logger::HighVerbosity);
     clear();
     m_request->get(m_resourcePath, m_filters);
     emit statusChanged(status());
@@ -191,6 +234,7 @@ void SoundCloudTrackModel::reload() {
 
 void SoundCloudTrackModel::append(SoundCloudTrack *track) {
     beginInsertRows(QModelIndex(), m_items.size(), m_items.size());
+    connect(track, SIGNAL(changed()), this, SLOT(onItemChanged()));
     m_items << track;
     endInsertRows();
 }
@@ -198,6 +242,7 @@ void SoundCloudTrackModel::append(SoundCloudTrack *track) {
 void SoundCloudTrackModel::insert(int row, SoundCloudTrack *track) {
     if ((row >= 0) && (row < m_items.size())) {
         beginInsertRows(QModelIndex(), row, row);
+        connect(track, SIGNAL(changed()), this, SLOT(onItemChanged()));
         m_items.insert(row, track);
         endInsertRows();
     }
@@ -214,23 +259,36 @@ void SoundCloudTrackModel::remove(int row) {
     }
 }
 
+void SoundCloudTrackModel::onItemChanged() {
+    const int row = m_items.indexOf(qobject_cast<SoundCloudTrack*>(sender()));
+    
+    if (row != -1) {
+        emit dataChanged(index(row, 0), index(row, columnCount() - 1));
+    }
+}
+
 void SoundCloudTrackModel::onRequestFinished() {
     if (m_request->status() == QSoundCloud::ResourcesRequest::Ready) {
-        QVariantMap result = m_request->result().toMap();
+        const QVariantMap result = m_request->result().toMap();
         
         if (!result.isEmpty()) {
             m_nextHref = result.value("next_href").toString().section(QSoundCloud::API_URL, -1);
-            QVariantList list = result.value(m_resourcePath.contains("/playlists/") ? "tracks" : "collection").toList();
+            const QVariantList list = result.value(m_resourcePath.contains("/playlists/") ? "tracks" : "collection").toList();
 
             beginInsertRows(QModelIndex(), m_items.size(), m_items.size() + list.size() - 1);
     
-            foreach (QVariant item, list) {
-                m_items << new SoundCloudTrack(item.toMap(), this);
+            foreach (const QVariant &item, list) {
+                SoundCloudTrack *track = new SoundCloudTrack(item.toMap(), this);
+                connect(track, SIGNAL(changed()), this, SLOT(onItemChanged()));
+                m_items << track;
             }
 
             endInsertRows();
             emit countChanged(rowCount());
         }
+    }
+    else {
+        Logger::log("SoundCloudTrackModel::onRequestFinished(). Error: " + errorString());
     }
     
     emit statusChanged(status());
@@ -238,18 +296,12 @@ void SoundCloudTrackModel::onRequestFinished() {
 
 void SoundCloudTrackModel::onTrackFavourited(SoundCloudTrack *track) {
     insert(0, new SoundCloudTrack(track, this));
-#ifdef MUSIKLOUD_DEBUG
-    qDebug() << "SoundCloudTrackModel::onTrackFavourited" << track->id();
-#endif
 }
 
 void SoundCloudTrackModel::onTrackUnfavourited(SoundCloudTrack *track) {
-    QModelIndexList list = match(index(0), IdRole, track->id(), 1, Qt::MatchExactly);
+    const QModelIndexList list = match(index(0), IdRole, track->id(), 1, Qt::MatchExactly);
     
     if (!list.isEmpty()) {
         remove(list.first().row());
     }
-#ifdef MUSIKLOUD_DEBUG
-    qDebug() << "SoundCloudTrackModel::onTrackUnfavourited" << track->id();
-#endif
 }

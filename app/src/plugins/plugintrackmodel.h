@@ -17,7 +17,6 @@
 #ifndef PLUGINTRACKMODEL_H
 #define PLUGINTRACKMODEL_H
 
-#include "resourcesrequest.h"
 #include "plugintrack.h"
 #include <QAbstractListModel>
 
@@ -33,21 +32,26 @@ class PluginTrackModel : public QAbstractListModel
     
 public:
     enum Roles {
-        ArtistRole = Qt::UserRole + 1,
+        ActionsRole = Qt::UserRole + 1,
+        ArtistRole,
         ArtistIdRole,
+        CommentsIdRole,
         DateRole,
         DescriptionRole,
         DownloadableRole,
         DurationRole,
         DurationStringRole,
+        ErrorStringRole,
         FormatRole,
         GenreRole,
         IdRole,
         LargeThumbnailUrlRole,
         PlayCountRole,
+        RelatedTracksIdRole,
         ServiceRole,
         SizeRole,
         SizeStringRole,
+        StatusRole,
         StreamUrlRole,
         ThumbnailUrlRole,
         TitleRole,
@@ -56,10 +60,10 @@ public:
     
     explicit PluginTrackModel(QObject *parent = 0);
     
-    QString service() const;
-    void setService(const QString &service);
-    
     QString errorString() const;
+    
+    QString service() const;
+    void setService(const QString &service);    
     
     ResourcesRequest::Status status() const;
     
@@ -67,9 +71,12 @@ public:
     QHash<int, QByteArray> roleNames() const;
 #endif
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
+    int columnCount(const QModelIndex &parent = QModelIndex()) const;
     
     bool canFetchMore(const QModelIndex &parent = QModelIndex()) const;
     Q_INVOKABLE void fetchMore(const QModelIndex &parent = QModelIndex());
+    
+    QVariant headerData(int section, Qt::Orientation orientation = Qt::Horizontal, int role = Qt::DisplayRole) const;
     
     QVariant data(const QModelIndex &index, int role) const;
     QMap<int, QVariant> itemData(const QModelIndex &index) const;
@@ -79,7 +86,7 @@ public:
     
     Q_INVOKABLE PluginTrack* get(int row) const;
     
-    Q_INVOKABLE void list(const QString &id = QString());
+    Q_INVOKABLE void list(const QString &resourceId);
     Q_INVOKABLE void search(const QString &query, const QString &order);
 
 public Q_SLOTS:
@@ -87,23 +94,26 @@ public Q_SLOTS:
     void cancel();
     void reload();
     
-private:    
-    void append(PluginTrack *track);
-    void insert(int row, PluginTrack *track);
-    void remove(int row);
-    
 private Q_SLOTS:
+    void onItemChanged();
     void onRequestFinished();
     
 Q_SIGNALS:
-    void countChanged(int c);
+    void countChanged(int count);
     void serviceChanged();
     void statusChanged(ResourcesRequest::Status s);
     
 private:
+    void append(PluginTrack *track);
+    void insert(int row, PluginTrack *track);
+    void remove(int row);
+    
+    ResourcesRequest* request();
+    
     ResourcesRequest *m_request;
     
-    QString m_id;
+    QString m_service;
+    QString m_resourceId;
     QString m_query;
     QString m_order;
     QString m_next;

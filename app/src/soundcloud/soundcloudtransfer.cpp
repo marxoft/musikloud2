@@ -15,8 +15,10 @@
  */
 
 #include "soundcloudtransfer.h"
+#include "logger.h"
 #include "soundcloud.h"
 #include <qsoundcloud/streamsrequest.h>
+#include <QFileInfo>
 
 SoundCloudTransfer::SoundCloudTransfer(QObject *parent) :
     Transfer(parent),
@@ -27,37 +29,49 @@ SoundCloudTransfer::SoundCloudTransfer(QObject *parent) :
 void SoundCloudTransfer::listStreams() {
     if (!m_streamsRequest) {
         m_streamsRequest = new QSoundCloud::StreamsRequest(this);
-        m_streamsRequest->setClientId(SoundCloud::instance()->clientId());
-        m_streamsRequest->setClientSecret(SoundCloud::instance()->clientSecret());
-        m_streamsRequest->setAccessToken(SoundCloud::instance()->accessToken());
-        m_streamsRequest->setRefreshToken(SoundCloud::instance()->refreshToken());
+        m_streamsRequest->setClientId(SoundCloud::clientId());
+        m_streamsRequest->setClientSecret(SoundCloud::clientSecret());
+        m_streamsRequest->setAccessToken(SoundCloud::accessToken());
+        m_streamsRequest->setRefreshToken(SoundCloud::refreshToken());
         
         connect(m_streamsRequest, SIGNAL(accessTokenChanged(QString)), SoundCloud::instance(), SLOT(setAccessToken(QString)));
         connect(m_streamsRequest, SIGNAL(refreshTokenChanged(QString)), SoundCloud::instance(), SLOT(setRefreshToken(QString)));
         connect(m_streamsRequest, SIGNAL(finished()), this, SLOT(onStreamsRequestFinished()));
     }
     
-    m_streamsRequest->get(resourceId());
+    m_streamsRequest->get(trackId());
 }
 
 void SoundCloudTransfer::onStreamsRequestFinished() {
     if (m_streamsRequest->status() == QSoundCloud::StreamsRequest::Ready) {
-        QVariantList list = m_streamsRequest->result().toList();
+        const QVariantList list = m_streamsRequest->result().toList();
         
-        foreach (QVariant v, list) {
-            QVariantMap stream = v.toMap();
-        
+        foreach (const QVariant &v, list) {
+            const QVariantMap stream = v.toMap();
+            
             if (stream.value("id") == streamId()) {
-                QString ext = stream.value("ext").toString();
+                const QFileInfo info(downloadPath() + fileName());
+                QString suffix = info.suffix();
                 
-                if (!ext.isEmpty()) {
-                    setFileExtension(ext);
+                if (suffix.isEmpty()) {
+                    suffix = stream.value("ext").toString();
+                    
+                    if (!suffix.isEmpty()) {
+                        if (!suffix.startsWith(".")) {
+                            suffix.prepend(".");
+                        }
+                        
+                        setFileName(info.completeBaseName() + suffix);
+                    }
                 }
                 
                 startDownload(stream.value("url").toString());
                 return;
             }
         }
+    }
+    else {
+        Logger::log("SoundCloudTransfer::onStreamsRequestFinished(). Error: " + m_streamsRequest->errorString());
     }
     
     setErrorString(tr("No stream URL found"));

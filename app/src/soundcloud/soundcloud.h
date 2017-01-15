@@ -18,6 +18,7 @@
 #define SOUNDCLOUD_H
 
 #include <QObject>
+#include <QRegExp>
 #include <QStringList>
 #include <QVariantMap>
 #include <QUrl>
@@ -42,57 +43,60 @@ class SoundCloud : public QObject
     Q_PROPERTY(QString WILDCARD_SCOPE READ wildcardScope CONSTANT)
         
 public:
-    explicit SoundCloud(QObject *parent = 0);
     ~SoundCloud();
+    
+    static const QRegExp URL_REGEXP;
         
     static SoundCloud* instance();
             
     Q_INVOKABLE static QString getErrorString(const QVariantMap &error);
     
-    Q_INVOKABLE QUrl authUrl() const;
+    Q_INVOKABLE static QUrl authUrl();
     
-    QString userId() const;
+    static QString userId();
     
-    QString accessToken() const;
+    static QString accessToken();
     
-    QString refreshToken() const;
+    static QString refreshToken();
             
-    QString clientId() const;
+    static QString clientId();
     
-    QString clientSecret() const;
+    static QString clientSecret();
     
-    QString redirectUri() const;
+    static QString redirectUri();
     
-    QStringList scopes() const;
+    static QStringList scopes();
     
-    Q_INVOKABLE bool hasScope(const QString &scope) const;
+    Q_INVOKABLE static bool hasScope(const QString &scope);
     
     static QString nonexpiringScope();
     static QString wildcardScope();
     
-public Q_SLOTS:    
-    void setUserId(const QString &id);
+public Q_SLOTS:
+    static void init();
     
-    void setAccessToken(const QString &token);
+    static void setUserId(const QString &id);
     
-    void setRefreshToken(const QString &token);
+    static void setAccessToken(const QString &token);
     
-    void setClientId(const QString &id);
+    static void setRefreshToken(const QString &token);
     
-    void setClientSecret(const QString &secret);
+    static void setClientId(const QString &id);
     
-    void setRedirectUri(const QString &uri);
+    static void setClientSecret(const QString &secret);
     
-    void setScopes(const QStringList &s);
+    static void setRedirectUri(const QString &uri);
+    
+    static void setScopes(const QStringList &s);
     
 Q_SIGNALS:
-    void userIdChanged();
-    void accessTokenChanged();
-    void refreshTokenChanged();
-    void clientIdChanged();
-    void clientSecretChanged();
-    void redirectUriChanged();
-    void scopesChanged();
+    void userIdChanged(const QString &id);
+    void accessTokenChanged(const QString &token);
+    void refreshTokenChanged(const QString &token);
+    void clientIdChanged(const QString &id);
+    void clientSecretChanged(const QString &secret);
+    void redirectUriChanged(const QString &uri);
+    void scopesChanged(const QStringList &scopes);
     
     void artistFollowed(SoundCloudArtist *artist);
     void artistUnfollowed(SoundCloudArtist *artist);
@@ -103,6 +107,8 @@ Q_SIGNALS:
     void trackUnfavourited(SoundCloudTrack *track);    
 
 private:
+    SoundCloud();
+    
     struct FollowingCache {
         QStringList ids;
         QString nextHref;
@@ -116,9 +122,15 @@ private:
             filters["linked_partitioning"] = true;
         }
     };
-    
+        
     static FollowingCache followingCache;
     static SoundCloud *self;
+    
+    static const QString CLIENT_ID;
+    static const QString CLIENT_SECRET;
+    static const QString REDIRECT_URI;
+    
+    static const QStringList SCOPES;
     
     friend class SoundCloudArtist;
     friend class SoundCloudComment;

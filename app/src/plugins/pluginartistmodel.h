@@ -17,7 +17,6 @@
 #ifndef PLUGINARTISTMODEL_H
 #define PLUGINARTISTMODEL_H
 
-#include "resourcesrequest.h"
 #include "pluginartist.h"
 #include <QAbstractListModel>
 
@@ -33,30 +32,39 @@ class PluginArtistModel : public QAbstractListModel
     
 public:
     enum Roles {
-        DescriptionRole = Qt::UserRole + 1,
+        ActionsRole = Qt::UserRole + 1,
+        DescriptionRole,
+        ErrorStringRole,
         IdRole,
         LargeThumbnailUrlRole,
         NameRole,
+        PlaylistsIdRole,
         ServiceRole,
-        ThumbnailUrlRole
+        StatusRole,
+        ThumbnailUrlRole,
+        TracksIdRole,
+        UrlRole
     };
     
     explicit PluginArtistModel(QObject *parent = 0);
     
-    QString service() const;
-    void setService(const QString &service);
-    
     QString errorString() const;
     
+    QString service() const;
+    void setService(const QString &s);
+        
     ResourcesRequest::Status status() const;
     
 #if QT_VERSION >= 0x050000
     QHash<int, QByteArray> roleNames() const;
 #endif
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
+    int columnCount(const QModelIndex &parent = QModelIndex()) const;
     
     bool canFetchMore(const QModelIndex &parent = QModelIndex()) const;
     Q_INVOKABLE void fetchMore(const QModelIndex &parent = QModelIndex());
+    
+    QVariant headerData(int section, Qt::Orientation orientation = Qt::Horizontal, int role = Qt::DisplayRole) const;
     
     QVariant data(const QModelIndex &index, int role) const;
     QMap<int, QVariant> itemData(const QModelIndex &index) const;
@@ -66,7 +74,7 @@ public:
     
     Q_INVOKABLE PluginArtist* get(int row) const;
     
-    Q_INVOKABLE void list(const QString &id = QString());
+    Q_INVOKABLE void list(const QString &resourceId);
     Q_INVOKABLE void search(const QString &query, const QString &order);
 
 public Q_SLOTS:
@@ -74,23 +82,26 @@ public Q_SLOTS:
     void cancel();
     void reload();
     
-private:    
-    void append(PluginArtist *artist);
-    void insert(int row, PluginArtist *artist);
-    void remove(int row);
-    
 private Q_SLOTS:
+    void onItemChanged();
     void onRequestFinished();
     
 Q_SIGNALS:
-    void countChanged(int c);
+    void countChanged(int count);
     void serviceChanged();
     void statusChanged(ResourcesRequest::Status s);
     
 private:
+    void append(PluginArtist *artist);
+    void insert(int row, PluginArtist *artist);
+    void remove(int row);
+    
+    ResourcesRequest* request();
+    
     ResourcesRequest *m_request;
     
-    QString m_id;
+    QString m_resourceId;
+    QString m_service;
     QString m_query;
     QString m_order;
     QString m_next;

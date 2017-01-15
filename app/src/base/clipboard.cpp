@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Stuart Howarth <showarth@marxoft.co.uk>
+ * Copyright (C) 2016 Stuart Howarth <showarth@marxoft.co.uk>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -16,91 +16,64 @@
  */
 
 #include "clipboard.h"
-#include "settings.h"
+#include "logger.h"
 #include <QApplication>
 #include <QClipboard>
-#ifdef MEEGO_EDITION_HARMATTAN
-#include <QTimer>
-#endif
-#ifdef CUTETUBE_DEBUG
-#include <QDebug>
-#endif
 
 Clipboard* Clipboard::self = 0;
 
-Clipboard::Clipboard(QObject *parent) :
-    QObject(parent),
-    m_monitor(false)
-#ifdef MEEGO_EDITION_HARMATTAN
-    ,m_timer(0)
-#endif
+Clipboard::Clipboard() :
+    QObject(),
+    m_enabled(false)
 {
-    if (!self) {
-        self = this;
-    }
-    
-    connect(Settings::instance(), SIGNAL(clipboardMonitorEnabledChanged()), this, SLOT(onMonitorEnabledChanged()));
-    onMonitorEnabledChanged();
 }
 
 Clipboard::~Clipboard() {
-    if (self == this) {
-        self = 0;
-    }
+    self = 0;
 }
 
 Clipboard* Clipboard::instance() {
-    return self;
+    return self ? self : self = new Clipboard;
 }
 
-QString Clipboard::text() const {
+QString Clipboard::text() {
     return QApplication::clipboard()->text();
 }
 
 void Clipboard::setText(const QString &text) {
-    disconnect(QApplication::clipboard(), SIGNAL(dataChanged()), this, SLOT(onTextChanged()));
+    if (self) {
+        self->disconnect(QApplication::clipboard(), SIGNAL(dataChanged()), self, SLOT(onTextChanged()));
+    }
+    
     QApplication::clipboard()->setText(text);
     
-    if (m_monitor) {
-        connect(QApplication::clipboard(), SIGNAL(dataChanged()), this, SLOT(onTextChanged()));
+    if ((self) && (self->isEnabled())) {
+        self->connect(QApplication::clipboard(), SIGNAL(dataChanged()), self, SLOT(onTextChanged()));
     }
 }
 
-void Clipboard::onMonitorEnabledChanged() {
-    if (Settings::instance()->clipboardMonitorEnabled()) {
-        m_monitor = true;
-        connect(QApplication::clipboard(), SIGNAL(dataChanged()), this, SLOT(onTextChanged()));
+bool Clipboard::isEnabled() const {
+    return m_enabled;
+}
+
+void Clipboard::setEnabled(bool enabled) {
+    if (enabled != isEnabled()) {
+        m_enabled = enabled;
+        emit enabledChanged(enabled);
+        
+        if (enabled) {
+            connect(QApplication::clipboard(), SIGNAL(dataChanged()), this, SLOT(onTextChanged()));
+        }
+        else {
+            disconnect(QApplication::clipboard(), SIGNAL(dataChanged()), this, SLOT(onTextChanged()));
+        }
     }
-    else {
-        m_monitor = false;
-        disconnect(QApplication::clipboard(), SIGNAL(dataChanged()), this, SLOT(onTextChanged()));
-    }
-#ifdef CUTETUBE_DEBUG
-    qDebug() << "Clipboard::onMonitorEnabledChanged" << m_monitor;
-#endif
 }
 
 void Clipboard::onTextChanged() {
-#ifdef MEEGO_EDITION_HARMATTAN
-    if ((m_timer) && (m_timer->isActive())) {
-        // QClipboard::dataChanged() signal is emitted twice in Harmattan,
-        // so ignore the signal if the timer is still active.
-        return;
-    }
-    else {
-        if (!m_timer) {
-            m_timer = new QTimer(this);
-            m_timer->setInterval(3000);
-            m_timer->setSingleShot(true);
-        }
+    const QString text = QApplication::clipboard()->text();
+    Logger::log("Clipboard::onTextChanged(). Text: " + text, Logger::HighVerbosity);
 
-        m_timer->start();
-    }
-#endif
-    QString text = QApplication::clipboard()->text();
-#ifdef CUTETUBE_DEBUG
-    qDebug() << "Clipboard::onTextChanged" << text;
-#endif
     if (!text.isEmpty()) {
         emit textChanged(text);
     }

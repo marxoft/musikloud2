@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Stuart Howarth <showarth@marxoft.co.uk>
+ * Copyright (C) 2016 Stuart Howarth <showarth@marxoft.co.uk>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -33,8 +33,8 @@ QHash<int, QByteArray> SelectionModel::roleNames() const {
 }
 #endif
 
-int SelectionModel::rowCount(const QModelIndex &) const {
-    return m_items.size();
+int SelectionModel::rowCount(const QModelIndex &parent) const {
+    return parent.isValid() ? 0 : m_items.size();
 }
 
 Qt::Alignment SelectionModel::textAlignment() const {

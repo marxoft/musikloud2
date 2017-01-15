@@ -15,40 +15,55 @@
  */
 
 #include "plugincommentmodel.h"
+#include "logger.h"
+#include "pluginmanager.h"
 #include "resources.h"
 
 PluginCommentModel::PluginCommentModel(QObject *parent) :
     QAbstractListModel(parent),
-    m_request(new ResourcesRequest(this))
+    m_request(0)
 {
+    m_roles[ActionsRole] = "actions";
     m_roles[ArtistRole] = "artist";
     m_roles[ArtistIdRole] = "artistId";
     m_roles[BodyRole] = "body";
     m_roles[DateRole] = "date";
+    m_roles[ErrorStringRole] = "errorString";
     m_roles[IdRole] = "id";
+    m_roles[ServiceRole] = "service";
+    m_roles[StatusRole] = "status";
     m_roles[ThumbnailUrlRole] = "thumbnailUrl";
     m_roles[TrackIdRole] = "trackId";
+    m_roles[UrlRole] = "url";
 #if QT_VERSION < 0x050000
     setRoleNames(m_roles);
 #endif
-    connect(m_request, SIGNAL(serviceChanged()), this, SIGNAL(serviceChanged()));
-    connect(m_request, SIGNAL(finished()), this, SLOT(onRequestFinished()));
-}
-
-QString PluginCommentModel::service() const {
-    return m_request->service();
-}
-
-void PluginCommentModel::setService(const QString &s) {
-    m_request->setService(s);
 }
 
 QString PluginCommentModel::errorString() const {
-    return m_request->errorString();
+    return m_request ? m_request->errorString() : QString();
+}
+
+QString PluginCommentModel::service() const {
+    return m_service;
+}
+
+void PluginCommentModel::setService(const QString &s) {
+    if (s != service()) {
+        m_service = s;
+        emit serviceChanged();
+
+        clear();
+
+        if (m_request) {
+            m_request->deleteLater();
+            m_request = 0;
+        }
+    }
 }
 
 ResourcesRequest::Status PluginCommentModel::status() const {
-    return m_request->status();
+    return m_request ? m_request->status() : ResourcesRequest::Null;
 }
 
 #if QT_VERSION >=0x050000
@@ -57,25 +72,61 @@ QHash<int, QByteArray> PluginCommentModel::roleNames() const {
 }
 #endif
 
-int PluginCommentModel::rowCount(const QModelIndex &) const {
-    return m_items.size();
+int PluginCommentModel::rowCount(const QModelIndex &parent) const {
+    return parent.isValid() ? 0 : m_items.size();
 }
 
-bool PluginCommentModel::canFetchMore(const QModelIndex &) const {
-    return (status() != ResourcesRequest::Loading) && (!m_next.isEmpty());
+int PluginCommentModel::columnCount(const QModelIndex &parent) const {
+    return parent.isValid() ? 0 : 3;
 }
 
-void PluginCommentModel::fetchMore(const QModelIndex &) {
-    if (!canFetchMore()) {
+bool PluginCommentModel::canFetchMore(const QModelIndex &parent) const {
+    return (!parent.isValid()) && (status() != ResourcesRequest::Loading) && (!m_next.isEmpty());
+}
+
+void PluginCommentModel::fetchMore(const QModelIndex &parent) {
+    if (!canFetchMore(parent)) {
         return;
     }
+
+    if (ResourcesRequest *r = request()) {
+        r->list(Resources::COMMENT, m_next);
+        emit statusChanged(status());
+    }
+}
+
+QVariant PluginCommentModel::headerData(int section, Qt::Orientation orientation, int role) const {
+    if ((orientation != Qt::Horizontal) || (role != Qt::DisplayRole)) {
+        return QVariant();
+    }
     
-    m_request->list(Resources::COMMENT, m_next);
-    emit statusChanged(status());
+    switch (section) {
+    case 0:
+        return tr("Artist");
+    case 1:
+        return tr("Date");
+    case 2:
+        return tr("Comment");
+    default:
+        return QVariant();
+    }
 }
 
 QVariant PluginCommentModel::data(const QModelIndex &index, int role) const {
-    if (PluginComment *comment = get(index.row())) {
+    if (const PluginComment *comment = get(index.row())) {
+        if (role == Qt::DisplayRole) {
+            switch (index.column()) {
+            case 0:
+                return comment->artist();
+            case 1:
+                return comment->date();
+            case 2:
+                return comment->body();
+            default:
+                return QVariant();
+            }
+        }
+        
         return comment->property(m_roles[role]);
     }
     
@@ -85,7 +136,7 @@ QVariant PluginCommentModel::data(const QModelIndex &index, int role) const {
 QMap<int, QVariant> PluginCommentModel::itemData(const QModelIndex &index) const {
     QMap<int, QVariant> map;
     
-    if (PluginComment *comment = get(index.row())) {
+    if (const PluginComment *comment = get(index.row())) {
         QHashIterator<int, QByteArray> iterator(m_roles);
         
         while (iterator.hasNext()) {
@@ -98,7 +149,7 @@ QMap<int, QVariant> PluginCommentModel::itemData(const QModelIndex &index) const
 }
 
 QVariant PluginCommentModel::data(int row, const QByteArray &role) const {
-    if (PluginComment *comment = get(row)) {
+    if (const PluginComment *comment = get(row)) {        
         return comment->property(role);
     }
     
@@ -108,8 +159,8 @@ QVariant PluginCommentModel::data(int row, const QByteArray &role) const {
 QVariantMap PluginCommentModel::itemData(int row) const {
     QVariantMap map;
     
-    if (PluginComment *comment = get(row)) {
-        foreach (QByteArray role, m_roles.values()) {
+    if (const PluginComment *comment = get(row)) {
+        foreach (const QByteArray &role, m_roles.values()) {
             map[role] = comment->property(role);
         }
     }
@@ -125,16 +176,20 @@ PluginComment* PluginCommentModel::get(int row) const {
     return 0;
 }
 
-void PluginCommentModel::list(const QString &id) {
+void PluginCommentModel::list(const QString &resourceId) {
     if (status() == ResourcesRequest::Loading) {
         return;
     }
     
+    Logger::log("PluginCommentModel::list(). Resource ID: " + resourceId, Logger::MediumVerbosity);
     clear();
-    m_id = id;
+    m_resourceId = resourceId;
     m_query = QString();
-    m_request->list(Resources::COMMENT, id);
-    emit statusChanged(status());
+
+    if (ResourcesRequest *r = request()) {
+        r->list(Resources::COMMENT, resourceId);
+        emit statusChanged(status());
+    }
 }
 
 void PluginCommentModel::search(const QString &query, const QString &order) {
@@ -142,12 +197,17 @@ void PluginCommentModel::search(const QString &query, const QString &order) {
         return;
     }
     
+    Logger::log(QString("PluginCommentModel::search(). Query: %1, Order: %2").arg(query).arg(order),
+                Logger::MediumVerbosity);
     clear();
-    m_id = QString();
+    m_resourceId = QString();
     m_query = query;
     m_order = order;
-    m_request->search(Resources::COMMENT, query, order);
-    emit statusChanged(status());
+
+    if (ResourcesRequest *r = request()) {
+        r->search(Resources::COMMENT, query, order);
+        emit statusChanged(status());
+    }
 }
 
 void PluginCommentModel::clear() {
@@ -162,24 +222,34 @@ void PluginCommentModel::clear() {
 }
 
 void PluginCommentModel::cancel() {
-    m_request->cancel();
+    if (m_request) {
+        m_request->cancel();
+    }
 }
 
 void PluginCommentModel::reload() {
+    if (status() == ResourcesRequest::Loading) {
+        return;
+    }
+    
+    Logger::log("PluginCommentModel::reload(). Resource ID: " + m_resourceId, Logger::MediumVerbosity);
     clear();
-    
-    if (m_query.isEmpty()) {
-        m_request->list(Resources::COMMENT, m_id);
+
+    if (ResourcesRequest *r = request()) {
+        if (m_query.isEmpty()) {
+            r->list(Resources::COMMENT, m_resourceId);
+        }
+        else {
+            r->search(Resources::COMMENT, m_query, m_order);
+        }
+        
+        emit statusChanged(status());
     }
-    else {
-        m_request->search(Resources::COMMENT, m_query, m_order);
-    }
-    
-    emit statusChanged(status());
 }
 
 void PluginCommentModel::append(PluginComment *comment) {
     beginInsertRows(QModelIndex(), m_items.size(), m_items.size());
+    connect(comment, SIGNAL(changed()), this, SLOT(onItemChanged()));
     m_items << comment;
     endInsertRows();
 }
@@ -187,6 +257,7 @@ void PluginCommentModel::append(PluginComment *comment) {
 void PluginCommentModel::insert(int row, PluginComment *comment) {
     if ((row >= 0) && (row < m_items.size())) {
         beginInsertRows(QModelIndex(), row, row);
+        connect(comment, SIGNAL(changed()), this, SLOT(onItemChanged()));
         m_items.insert(row, comment);
         endInsertRows();
     }
@@ -203,24 +274,49 @@ void PluginCommentModel::remove(int row) {
     }
 }
 
+ResourcesRequest* PluginCommentModel::request() {
+    if (!m_request) {
+        m_request = PluginManager::instance()->createRequestForService(service(), this);
+
+        if (m_request) {
+            connect(m_request, SIGNAL(finished()), this, SLOT(onRequestFinished()));
+        }
+    }
+
+    return m_request;
+}
+
+void PluginCommentModel::onItemChanged() {
+    const int row = m_items.indexOf(qobject_cast<PluginComment*>(sender()));
+    
+    if (row != -1) {
+        emit dataChanged(index(row, 0), index(row, columnCount() - 1));
+    }
+}
+
 void PluginCommentModel::onRequestFinished() {
     if (m_request->status() == ResourcesRequest::Ready) {
-        QVariantMap result = m_request->result().toMap();
+        const QVariantMap result = m_request->result().toMap();
         
         if (!result.isEmpty()) {
             m_next = result.value("next").toString();
-            QVariantList list = result.value("items").toList();
+            const QVariantList list = result.value("items").toList();
 
             beginInsertRows(QModelIndex(), m_items.size(), m_items.size() + list.size() - 1);
     
-            foreach (QVariant item, list) {
-                m_items << new PluginComment(service(), item.toMap(), this);
+            foreach (const QVariant &item, list) {
+                PluginComment *comment = new PluginComment(service(), item.toMap(), this);
+                connect(comment, SIGNAL(changed()), this, SLOT(onItemChanged()));
+                m_items << comment;
             }
 
             endInsertRows();
             emit countChanged(rowCount());
                 
         }
+    }
+    else {
+        Logger::log("PluginCommentModel::onRequestFinished(). Error: " + errorString());
     }
     
     emit statusChanged(status());

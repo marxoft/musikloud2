@@ -1,0 +1,41 @@
+{
+    "type": "js",
+    "version": 2,
+    "name": "Internet radio",
+    "resources": [
+        {
+            "type": "track",
+            "method": "list",
+            "label": "All stations",
+            "id": "/stations"
+        },
+        
+        {
+            "type": "track",
+            "method": "search",
+            "label": "Stations",
+            "order": "title"
+        },
+        
+        {
+            "type": "category",
+            "method": "list",
+            "label": "Stations by genre",
+            "id": "/genres"
+        },
+        
+        {
+            "type": "category",
+            "method": "list",
+            "label": "Stations by country",
+            "id": "/countries"
+        },
+        
+        {
+            "type": "category",
+            "method": "list",
+            "label": "Stations by language",
+            "id": "/languages"
+        }
+    ]
+}

@@ -24,7 +24,6 @@ class Screen : public QObject
     Q_OBJECT
 
 public:
-    explicit Screen(QObject *parent = 0);
     ~Screen();
 
     static Screen* instance();
@@ -36,6 +35,8 @@ signals:
     void screenLockStateChanged(bool locked);
     
 private:
+    Screen();
+    
     static Screen* self;
 };
 

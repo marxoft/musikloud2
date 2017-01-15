@@ -16,11 +16,9 @@
 
 #include "soundcloudartist.h"
 #include "definitions.h"
+#include "logger.h"
 #include "resources.h"
 #include "soundcloud.h"
-#ifdef MUSIKLOUD_DEBUG
-#include <QDebug>
-#endif
 
 SoundCloudArtist::SoundCloudArtist(QObject *parent) :
     MKArtist(parent),
@@ -72,7 +70,7 @@ SoundCloudArtist::SoundCloudArtist(const QVariantMap &artist, QObject *parent) :
             this, SLOT(onArtistUpdated(SoundCloudArtist*)));
 }
 
-SoundCloudArtist::SoundCloudArtist(SoundCloudArtist *artist, QObject *parent) :
+SoundCloudArtist::SoundCloudArtist(const SoundCloudArtist *artist, QObject *parent) :
     MKArtist(artist, parent),
     m_request(0),
     m_followed(artist->isFollowed()),
@@ -100,6 +98,7 @@ bool SoundCloudArtist::isFollowed() const {
 void SoundCloudArtist::setFollowed(bool s) {
     if (s != isFollowed()) {
         m_followed = s;
+        emit changed();
         emit followedChanged();
     }
 }
@@ -111,6 +110,7 @@ qint64 SoundCloudArtist::followersCount() const {
 void SoundCloudArtist::setFollowersCount(qint64 c) {
     if (c != followersCount()) {
         m_followersCount = c;
+        emit changed();
         emit followersCountChanged();
     }
 }
@@ -122,6 +122,7 @@ bool SoundCloudArtist::isOnline() const {
 void SoundCloudArtist::setOnline(bool o) {
     if (o != isOnline()) {
         m_online = o;
+        emit changed();
         emit onlineChanged();
     }
 }
@@ -133,6 +134,7 @@ qint64 SoundCloudArtist::playlistCount() const {
 void SoundCloudArtist::setPlaylistCount(qint64 c) {
     if (c != playlistCount()) {
         m_playlistCount = c;
+        emit changed();
         emit playlistCountChanged();
     }
 }
@@ -148,6 +150,7 @@ qint64 SoundCloudArtist::trackCount() const {
 void SoundCloudArtist::setTrackCount(qint64 c) {
     if (c != trackCount()) {
         m_trackCount = c;
+        emit changed();
         emit trackCountChanged();
     }
 }
@@ -159,6 +162,7 @@ QString SoundCloudArtist::websiteTitle() const {
 void SoundCloudArtist::setWebsiteTitle(const QString &t) {
     if (t != websiteTitle()) {
         m_websiteTitle = t;
+        emit changed();
         emit websiteTitleChanged();
     }
 }
@@ -170,6 +174,7 @@ QUrl SoundCloudArtist::websiteUrl() const {
 void SoundCloudArtist::setWebsiteUrl(const QUrl &u) {
     if (u != websiteUrl()) {
         m_websiteUrl = u;
+        emit changed();
         emit websiteUrlChanged();
     }
 }
@@ -179,6 +184,7 @@ void SoundCloudArtist::loadArtist(const QString &id) {
         return;
     }
     
+    setId(id);
     initRequest();
     
     if (id.startsWith("http")) {
@@ -191,6 +197,7 @@ void SoundCloudArtist::loadArtist(const QString &id) {
     }
     
     connect(m_request, SIGNAL(finished()), this, SLOT(onArtistRequestFinished()));
+    emit changed();
     emit statusChanged(status());
 }
 
@@ -200,14 +207,22 @@ void SoundCloudArtist::loadArtist(const QVariantMap &artist) {
     setDescription(artist.value("description").toString());
     setFollowersCount(artist.value("followers_count").toLongLong());
     setId(artist.value("id").toString());
-    setLargeThumbnailUrl(QString("%1-t%2x%2.jpg").arg(thumbnail.left(thumbnail.lastIndexOf('-'))).arg(LARGE_THUMBNAIL_SIZE));
     setName(artist.value("username").toString());
     setOnline(artist.value("online").toBool());
     setPlaylistCount(artist.value("playlist_count").toLongLong());
-    setThumbnailUrl(thumbnail);
     setTrackCount(artist.value("track_count").toLongLong());
+    setUrl(artist.value("url").toString());
     setWebsiteTitle(artist.value("website_title").toString());
     setWebsiteUrl(artist.value("website_url").toString());
+
+    if (!thumbnail.isEmpty()) {
+        setLargeThumbnailUrl(QString("%1-t%2x%2.jpg").arg(thumbnail.left(thumbnail.lastIndexOf('-'))).arg(LARGE_THUMBNAIL_SIZE));
+        setThumbnailUrl(QString("%1-t%2x%2.jpg").arg(thumbnail.left(thumbnail.lastIndexOf('-'))).arg(THUMBNAIL_SIZE));
+    }
+    else {
+        setLargeThumbnailUrl(QString());
+        setThumbnailUrl(QString());
+    }
 }
 
 void SoundCloudArtist::loadArtist(SoundCloudArtist *artist) {
@@ -232,13 +247,11 @@ void SoundCloudArtist::checkIfFollowed() {
     }
     
     if ((SoundCloud::followingCache.loaded) && (SoundCloud::followingCache.nextHref.isEmpty())) {
-#ifdef MUSIKLOUD_DEBUG
-        qDebug() << "SoundCloudArtist::checkIfFollowed" << id() << "not found";
-#endif
         setFollowed(false);
         return;
     }
     
+    Logger::log("SoundCloudArtist::checkIfSubscribed(). ID: " + id(), Logger::MediumVerbosity);
     initRequest();
     
     if (SoundCloud::followingCache.nextHref.isEmpty()) {
@@ -249,6 +262,7 @@ void SoundCloudArtist::checkIfFollowed() {
     }
     
     connect(m_request, SIGNAL(finished()), this, SLOT(onFollowCheckRequestFinished()));
+    emit changed();
     emit statusChanged(status());
 }
 
@@ -257,9 +271,11 @@ void SoundCloudArtist::follow() {
         return;
     }
     
+    Logger::log("SoundCloudArtist::follow(). ID: " + id(), Logger::MediumVerbosity);
     initRequest();
     m_request->insert("/me/followings/" + id());
     connect(m_request, SIGNAL(finished()), this, SLOT(onFollowRequestFinished()));
+    emit changed();
     emit statusChanged(status());
 }
 
@@ -268,19 +284,29 @@ void SoundCloudArtist::unfollow() {
         return;
     }
     
+    Logger::log("SoundCloudArtist::unfollow(). ID: " + id(), Logger::MediumVerbosity);
     initRequest();
     m_request->del("/me/followings/" + id());
     connect(m_request, SIGNAL(finished()), this, SLOT(onUnfollowRequestFinished()));
+    emit changed();
     emit statusChanged(status());
+}
+
+void SoundCloudArtist::cancel() {
+    if (status() == QSoundCloud::ResourcesRequest::Loading) {
+        m_request->cancel();
+        emit changed();
+        emit statusChanged(status());
+    }
 }
 
 void SoundCloudArtist::initRequest() {
     if (!m_request) {
         m_request = new QSoundCloud::ResourcesRequest(this);
-        m_request->setClientId(SoundCloud::instance()->clientId());
-        m_request->setClientSecret(SoundCloud::instance()->clientSecret());
-        m_request->setAccessToken(SoundCloud::instance()->accessToken());
-        m_request->setRefreshToken(SoundCloud::instance()->refreshToken());
+        m_request->setClientId(SoundCloud::clientId());
+        m_request->setClientSecret(SoundCloud::clientSecret());
+        m_request->setAccessToken(SoundCloud::accessToken());
+        m_request->setRefreshToken(SoundCloud::refreshToken());
     
         connect(m_request, SIGNAL(accessTokenChanged(QString)), SoundCloud::instance(), SLOT(setAccessToken(QString)));
         connect(m_request, SIGNAL(refreshTokenChanged(QString)), SoundCloud::instance(), SLOT(setRefreshToken(QString)));
@@ -293,30 +319,32 @@ void SoundCloudArtist::onArtistRequestFinished() {
     }
     
     disconnect(m_request, SIGNAL(finished()), this, SLOT(onArtistRequestFinished()));
+    emit changed();
     emit statusChanged(status());
 }
 
 void SoundCloudArtist::onFollowCheckRequestFinished() {
     if (m_request->status() == QSoundCloud::ResourcesRequest::Ready) {
-        QVariantMap result = m_request->result().toMap();
-        QVariantList list = result.value("collection").toList();
+        const QVariantMap result = m_request->result().toMap();
+        const QVariantList list = result.value("collection").toList();
         SoundCloud::followingCache.nextHref = result.value("next_href").toString().section('/', -1);
         SoundCloud::followingCache.loaded = true;
 
-        foreach (QVariant item, list) {
-            QVariantMap map = item.toMap();
+        foreach (const QVariant &item, list) {
+            const QVariantMap map = item.toMap();
             SoundCloud::followingCache.ids.append(map.value("id").toString());
         }
-#ifdef MUSIKLOUD_DEBUG
-        qDebug() << "SoundCloudArtist::onFollowCheckRequestFinished OK" << SoundCloud::followingCache.ids;
-#endif
+        
         disconnect(m_request, SIGNAL(finished()), this, SLOT(onArtistRequestFinished()));
+        emit changed();
         emit statusChanged(status());
         checkIfFollowed();
         return;
     }
     
+    Logger::log("SoundCloudArtist::onFollowCheckRequestFinished(). Error: " + errorString());
     disconnect(m_request, SIGNAL(finished()), this, SLOT(onArtistRequestFinished()));
+    emit changed();
     emit statusChanged(status());
 }
 
@@ -325,13 +353,16 @@ void SoundCloudArtist::onFollowRequestFinished() {
         setFollowed(true);
         setFollowersCount(followersCount() + 1);
         SoundCloud::followingCache.ids.append(id());
+        Logger::log("SoundCloudArtist::onFollowRequestFinished(). Follow added. ID: " + id(),
+                    Logger::MediumVerbosity);
         emit SoundCloud::instance()->artistFollowed(this);
-#ifdef MUSIKLOUD_DEBUG
-        qDebug() << "SoundCloudArtist::onFollowRequestFinished OK" << id();
-#endif
+    }
+    else {
+        Logger::log("SoundCloudArtist::onFollowRequestFinished(). Error: " + errorString());
     }
     
     disconnect(m_request, SIGNAL(finished()), this, SLOT(onFollowRequestFinished()));
+    emit changed();
     emit statusChanged(status());
 }
 
@@ -340,13 +371,16 @@ void SoundCloudArtist::onUnfollowRequestFinished() {
         setFollowed(false);
         setFollowersCount(followersCount() - 1);
         SoundCloud::followingCache.ids.removeOne(id());
+        Logger::log("SoundCloudArtist::onUnfollowRequestFinished(). Follow removed. ID: " + id(),
+                    Logger::MediumVerbosity);
         emit SoundCloud::instance()->artistUnfollowed(this);
-#ifdef MUSIKLOUD_DEBUG
-        qDebug() << "SoundCloudArtist::onUnfollowRequestFinished OK" << id();
-#endif
+    }
+    else {
+        Logger::log("SoundCloudArtist::onUnfollowRequestFinished(). Error: " + errorString());
     }
     
     disconnect(m_request, SIGNAL(finished()), this, SLOT(onUnfollowRequestFinished()));
+    emit changed();
     emit statusChanged(status());
 }
 

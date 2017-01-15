@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Stuart Howarth <showarth@marxoft.co.uk>
+ * Copyright (C) 2016 Stuart Howarth <showarth@marxoft.co.uk>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -33,7 +33,10 @@ class TransfersWindow : public StackedWindow
     
 public:
     explicit TransfersWindow(StackedWindow *parent = 0);
-    
+
+protected:
+    virtual void closeEvent(QCloseEvent *e);
+
 private Q_SLOTS:
     void onCountChanged(int count);
     void setCategoryMenuActions();
@@ -42,6 +45,7 @@ private Q_SLOTS:
     void startCurrentTransfer();
     void pauseCurrentTransfer();
     void removeCurrentTransfer();
+    void setCurrentTransferCustomCommand();
     void setCurrentTransferCategory();
     void setCurrentTransferPriority();
     
@@ -52,6 +56,7 @@ private:
     QAction *m_startAction;
     QAction *m_pauseAction;
     QMenu *m_contextMenu;
+    QAction *m_transferCommandAction;
     QAction *m_transferStartAction;
     QAction *m_transferPauseAction;
     QMenu *m_transferCategoryMenu;

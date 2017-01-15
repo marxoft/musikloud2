@@ -24,7 +24,15 @@ AccountDelegate::AccountDelegate(int activeRole, QObject *parent) :
 }
 
 void AccountDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const {
-    QStyledItemDelegate::paint(painter, option, index);
+    if ((option.state) & (QStyle::State_Selected)) {
+        painter->drawImage(option.rect, QImage("/etc/hildon/theme/images/TouchListBackgroundPressed.png"));
+    }
+    else {
+        painter->drawImage(option.rect, QImage("/etc/hildon/theme/images/TouchListBackgroundNormal.png"));
+    }
+    
+    QRect textRect = option.rect;
+    textRect.moveLeft(textRect.left() + 8);
 
     if (index.data(m_activeRole).toBool()) {
         QRect iconRect = option.rect;
@@ -32,5 +40,14 @@ void AccountDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
         iconRect.moveTop(iconRect.top() + (iconRect.height() - 48) / 2);
         iconRect.setSize(QSize(48, 48));
         painter->drawImage(iconRect, QImage("/usr/share/icons/hicolor/48x48/hildon/widgets_tickmark_grid.png"));
+        
+        textRect.setRight(iconRect.left() - 8);    
     }
+    else {
+        textRect.setRight(textRect.right() - 8);
+    }
+    
+    const QString text = painter->fontMetrics().elidedText(index.data(Qt::DisplayRole).toString(), Qt::ElideRight,
+                                                           textRect.width());
+    painter->drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, text);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Stuart Howarth <showarth@marxoft.co.uk>
+ * Copyright (C) 2016 Stuart Howarth <showarth@marxoft.co.uk>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -16,14 +16,14 @@
 
 #include "transfers.h"
 #include "definitions.h"
+#include "logger.h"
 #include "plugintransfer.h"
 #include "resources.h"
 #include "settings.h"
 #include "soundcloudtransfer.h"
-#include <QCoreApplication>
+#include "utils.h"
 #include <QNetworkAccessManager>
 #include <QSettings>
-#include <QDateTime>
 
 Transfers* Transfers::self = 0;
 
@@ -31,36 +31,29 @@ inline static Transfer* createTransfer(const QString &service, QObject *parent =
     if (service == Resources::SOUNDCLOUD) {
         return new SoundCloudTransfer(parent);
     }
-    else {
-        return new PluginTransfer(service, parent);
-    }
+    
+    return new PluginTransfer(service, parent);
 }
 
-Transfers::Transfers(QObject *parent) :
-    QObject(parent),
+Transfers::Transfers() :
+    QObject(),
     m_nam(new QNetworkAccessManager(this))
 {
-    if (!self) {
-        self = this;
-    }
-    
     m_queueTimer.setSingleShot(true);
     m_queueTimer.setInterval(1000);
     
     connect(&m_queueTimer, SIGNAL(timeout()), this, SLOT(startNextTransfers()));
-    connect(Settings::instance(), SIGNAL(maximumConcurrentTransfersChanged()),
-            this, SLOT(onMaximumConcurrentTransfersChanged()));
-    connect(QCoreApplication::instance(), SIGNAL(aboutToQuit()), this, SLOT(storeTransfers()));
+    connect(Settings::instance(), SIGNAL(maximumConcurrentTransfersChanged(int)),
+            this, SLOT(onMaximumConcurrentTransfersChanged(int)));
 }
 
 Transfers::~Transfers() {
-    if (self == this) {
-        self = 0;
-    }
+    save();
+    self = 0;
 }
 
 Transfers* Transfers::instance() {
-    return self;
+    return self ? self : self = new Transfers;
 }
 
 int Transfers::active() const {
@@ -71,19 +64,23 @@ int Transfers::count() const {
     return m_transfers.size();
 }
 
-void Transfers::addDownloadTransfer(const QString &service, const QString &resourceId, const QString &streamId,
-                                    const QUrl &streamUrl, const QString &title, const QString &category) {
+void Transfers::addDownloadTransfer(const QString &service, const QString &trackId, const QString &streamId,
+                                    const QUrl &streamUrl, const QString &title, const QString &category,
+                                    const QString &customCommand, bool customCommandOverrideEnabled) {
+    Logger::log(QString("Transfers::addDownloadTransfer(). Service: %1, Track ID: %2, Stream ID: %3, Stream URL: %4, Title: %5, Category: %6, Command: %7").arg(service).arg(trackId).arg(streamId).arg(streamUrl.toString())
+                .arg(title).arg(category).arg(customCommand));
     Transfer *transfer = createTransfer(service, this);
     transfer->setNetworkAccessManager(m_nam);
-    transfer->setId(QByteArray(QByteArray::number(QDateTime::currentMSecsSinceEpoch()) + "#"
-                    + resourceId.toUtf8()).toBase64());
-    transfer->setDownloadPath(Settings::instance()->downloadPath() + ".incomplete/" + transfer->id());
+    transfer->setId(Utils::createId());
+    transfer->setDownloadPath(Settings::downloadPath() + ".incomplete/" + transfer->id());
     transfer->setFileName(title);
     transfer->setCategory(category);
-    transfer->setResourceId(resourceId);
+    transfer->setTrackId(trackId);
     transfer->setStreamId(streamId);
     transfer->setStreamUrl(streamUrl);
     transfer->setTitle(title);
+    transfer->setCustomCommand(customCommand);
+    transfer->setCustomCommandOverrideEnabled(customCommandOverrideEnabled);
     
     connect(transfer, SIGNAL(statusChanged()), this, SLOT(onTransferStatusChanged()));
     
@@ -91,7 +88,7 @@ void Transfers::addDownloadTransfer(const QString &service, const QString &resou
     emit countChanged(count());
     emit transferAdded(transfer);
     
-    if (Settings::instance()->startTransfersAutomatically()) {
+    if (Settings::startTransfersAutomatically()) {
         transfer->queue();
     }
 }
@@ -123,6 +120,8 @@ bool Transfers::start() {
 }
 
 bool Transfers::pause() {
+    Logger::log("Transfers::pause()", Logger::HighVerbosity);
+    
     foreach (Transfer *transfer, m_transfers) {
         transfer->pause();
     }
@@ -131,6 +130,8 @@ bool Transfers::pause() {
 }
 
 bool Transfers::start(const QString &id) {
+    Logger::log("Transfers::start(). ID: " + id, Logger::HighVerbosity);
+    
     if (Transfer *transfer = get(id)) {
         transfer->queue();
         return true;
@@ -140,6 +141,8 @@ bool Transfers::start(const QString &id) {
 }
 
 bool Transfers::pause(const QString &id) {
+    Logger::log("Transfers::pause(). ID: " + id, Logger::HighVerbosity);
+    
     if (Transfer *transfer = get(id)) {
         transfer->pause();
         return true;
@@ -149,6 +152,8 @@ bool Transfers::pause(const QString &id) {
 }
 
 bool Transfers::cancel(const QString &id) {
+    Logger::log("Transfers::cancel(). ID: " + id, Logger::HighVerbosity);
+    
     if (Transfer *transfer = get(id)) {
         transfer->cancel();
         return true;
@@ -157,58 +162,69 @@ bool Transfers::cancel(const QString &id) {
     return false;
 }
 
-void Transfers::storeTransfers() {
-    QSettings settings(STORAGE_PATH + "transfers.conf", QSettings::NativeFormat);
+void Transfers::save() {
+    QSettings settings(APP_CONFIG_PATH + "transfers.conf", QSettings::IniFormat);
     settings.clear();
+    settings.beginWriteArray("transfers");
     
-    foreach (Transfer *transfer, m_transfers) {
-        settings.beginGroup(transfer->id());
+    for (int i = 0; i < m_transfers.size(); i++) {
+        const Transfer *transfer = m_transfers.at(i);
+        settings.setArrayIndex(i);
+        settings.setValue("id", transfer->id());
         settings.setValue("downloadPath", transfer->downloadPath());
         settings.setValue("fileName", transfer->fileName());
         settings.setValue("category", transfer->category());
         settings.setValue("priority", Transfer::Priority(transfer->priority()));
         settings.setValue("size", transfer->size());
         settings.setValue("service", transfer->service());
-        settings.setValue("resourceId", transfer->resourceId());
+        settings.setValue("trackId", transfer->trackId());
         settings.setValue("streamId", transfer->streamId());
         settings.setValue("streamUrl", transfer->streamUrl());
         settings.setValue("title", transfer->title());
-        settings.endGroup();
+        settings.setValue("customCommand", transfer->customCommand());
+        settings.setValue("customCommandOverrideEnabled", transfer->customCommandOverrideEnabled());
     }
+    
+    settings.endArray();
+    Logger::log(QString("Transfers::save(). %1 transfers saved").arg(m_transfers.size()), Logger::LowVerbosity);
 }
 
-void Transfers::restoreTransfers() {
-    QSettings settings(STORAGE_PATH + "transfers.conf", QSettings::NativeFormat);
+void Transfers::restore() {
+    QSettings settings(APP_CONFIG_PATH + "transfers.conf", QSettings::IniFormat);
+    const int size = settings.beginReadArray("transfers");
+    Logger::log(QString("Transfers::restore(). %1 transfers restored").arg(size), Logger::LowVerbosity);
 
-    foreach (QString group, settings.childGroups()) {
-        settings.beginGroup(group);
-        Transfer *transfer = createTransfer(settings.value("service").toString(), this);
-        transfer->setId(group);
+    for (int i = 0; i < size; i++) {
+        settings.setArrayIndex(i);
+        Transfer *transfer = createTransfer(settings.value("service", Resources::SOUNDCLOUD).toString(), this);
+        transfer->setId(settings.value("id").toString());
         transfer->setDownloadPath(settings.value("downloadPath").toString());
         transfer->setFileName(settings.value("fileName").toString());
         transfer->setCategory(settings.value("category").toString());
-        transfer->setPriority(Transfer::Priority(settings.value("priority").toInt()));
+        transfer->setPriority(Transfer::Priority(settings.value("priority", 1).toInt()));
         transfer->setSize(settings.value("size").toLongLong());
-        transfer->setResourceId(settings.value("resourceId").toString());
+        transfer->setTrackId(settings.value("trackId").toString());
         transfer->setStreamId(settings.value("streamId").toString());
         transfer->setStreamUrl(settings.value("streamUrl").toString());
         transfer->setTitle(settings.value("title").toString());
-        settings.endGroup();
-        
+        transfer->setCustomCommand(settings.value("customCommand").toString());
+        transfer->setCustomCommandOverrideEnabled(settings.value("customCommandOverrideEnabled", false).toBool());
         connect(transfer, SIGNAL(statusChanged()), this, SLOT(onTransferStatusChanged()));
     
         m_transfers << transfer;
         emit countChanged(count());
         emit transferAdded(transfer);
     
-        if (Settings::instance()->startTransfersAutomatically()) {
+        if (Settings::startTransfersAutomatically()) {
             transfer->queue();
         }
     }
+    
+    settings.endArray();
 }
 
 void Transfers::getNextTransfers() {
-    const int max = Settings::instance()->maximumConcurrentTransfers();
+    const int max = Settings::maximumConcurrentTransfers();
     
     for (int priority = Transfer::HighPriority; priority <= Transfer::LowPriority; priority++) {
         foreach (Transfer *transfer, m_transfers) {
@@ -217,6 +233,8 @@ void Transfers::getNextTransfers() {
                     addActiveTransfer(transfer);
                 }
                 else {
+                    Logger::log("Transfers::getNextTransfers(). Maximum concurrent transfers reached",
+                                Logger::MediumVerbosity);
                     return;
                 }
             }
@@ -240,11 +258,13 @@ void Transfers::removeTransfer(Transfer *transfer) {
 }
 
 void Transfers::addActiveTransfer(Transfer *transfer) {
+    Logger::log("Transfers::addActiveTransfer(). ID: " + transfer->id(), Logger::MediumVerbosity);
     m_active << transfer;
     emit activeChanged(active());
 }
 
 void Transfers::removeActiveTransfer(Transfer *transfer) {
+    Logger::log("Transfers::removeActiveTransfer(). ID: " + transfer->id(), Logger::MediumVerbosity);
     m_active.removeOne(transfer);
     emit activeChanged(active());
 }
@@ -259,7 +279,7 @@ void Transfers::onTransferStatusChanged() {
         case Transfer::Canceled:
         case Transfer::Completed:
             removeTransfer(transfer);
-            storeTransfers();
+            save();
             break;
         case Transfer::Queued:
             break;
@@ -267,27 +287,26 @@ void Transfers::onTransferStatusChanged() {
             return;
         }
                 
-        if (active() < Settings::instance()->maximumConcurrentTransfers()) {
+        if (active() < Settings::maximumConcurrentTransfers()) {
             m_queueTimer.start();
         }
     }
 }
 
-void Transfers::onMaximumConcurrentTransfersChanged() {
-    const int max = Settings::instance()->maximumConcurrentTransfers();
+void Transfers::onMaximumConcurrentTransfersChanged(int maximum) {
     int act = active();
     
-    if (act < max) {
+    if (act < maximum) {
         startNextTransfers();
     }
-    else if (act > max) {
+    else if (act > maximum) {
         for (int priority = Transfer::LowPriority; priority >= Transfer::HighPriority; priority--) {
             for (int i = m_active.size() - 1; i >= 0; i--) {
                 if (m_active.at(i)->priority() == priority) {
                     m_active.at(i)->pause();
                     act--;
                 
-                    if (act == max) {
+                    if (act == maximum) {
                         return;
                     }
                 }

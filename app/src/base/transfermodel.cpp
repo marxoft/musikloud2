@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Stuart Howarth <showarth@marxoft.co.uk>
+ * Copyright (C) 2016 Stuart Howarth <showarth@marxoft.co.uk>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -16,15 +16,14 @@
 
 #include "transfermodel.h"
 #include "transfers.h"
-#include "utils.h"
 
 TransferModel::TransferModel(QObject *parent) :
     QAbstractListModel(parent)
 {
     m_roles[BytesTransferredRole] = "bytesTransferred";
-    m_roles[CanConvertToAudioRole] = "canConvertToAudio";
-    m_roles[ConvertToAudioRole] = "convertToAudio";
     m_roles[CategoryRole] = "category";
+    m_roles[CustomCommandRole] = "customCommand";
+    m_roles[CustomCommandOverrideEnabledRole] = "customCommandOverrideEnabled";
     m_roles[DownloadPathRole] = "downloadPath";
     m_roles[ErrorStringRole] = "errorString";
     m_roles[FileNameRole] = "fileName";
@@ -32,13 +31,14 @@ TransferModel::TransferModel(QObject *parent) :
     m_roles[PriorityRole] = "priority";
     m_roles[PriorityStringRole] = "priorityString";
     m_roles[ProgressRole] = "progress";
-    m_roles[ResourceIdRole] = "resourceId";
+    m_roles[ProgressStringRole] = "progressString";
     m_roles[ServiceRole] = "service";
     m_roles[SizeRole] = "size";
     m_roles[StatusRole] = "status";
     m_roles[StatusStringRole] = "statusString";
     m_roles[StreamIdRole] = "streamId";
     m_roles[TitleRole] = "title";
+    m_roles[TrackIdRole] = "trackId";
     m_roles[TransferTypeRole] = "transferType";
     m_roles[UrlRole] = "url";
 #if QT_VERSION < 0x050000
@@ -61,12 +61,12 @@ QHash<int, QByteArray> TransferModel::roleNames() const {
 }
 #endif
 
-int TransferModel::rowCount(const QModelIndex &) const {
-    return Transfers::instance()->count();
+int TransferModel::rowCount(const QModelIndex &parent) const {
+    return parent.isValid() ? 0 : Transfers::instance()->count();
 }
 
-int TransferModel::columnCount(const QModelIndex &) const {
-    return 5;
+int TransferModel::columnCount(const QModelIndex &parent) const {
+    return parent.isValid() ? 0 : 5;
 }
 
 QVariant TransferModel::headerData(int section, Qt::Orientation orientation, int role) const {
@@ -91,7 +91,7 @@ QVariant TransferModel::headerData(int section, Qt::Orientation orientation, int
 }
 
 QVariant TransferModel::data(const QModelIndex &index, int role) const {
-    if (Transfer *transfer = Transfers::instance()->get(index.row())) {
+    if (const Transfer *transfer = Transfers::instance()->get(index.row())) {
         if (role == Qt::DisplayRole) {
             switch (index.column()) {
             case 0:
@@ -101,18 +101,15 @@ QVariant TransferModel::data(const QModelIndex &index, int role) const {
             case 2:
                 return transfer->priorityString();
             case 3:
-                return QString("%1 of %2 (%3%)").arg(Utils::formatBytes(transfer->bytesTransferred()))
-                                                .arg(Utils::formatBytes(transfer->size()))
-                                                .arg(transfer->progress());
+                return transfer->progressString();
             case 4:
                 return transfer->statusString();
             default:
                 return transfer->title();
             }
         }
-        else {
-            return transfer->property(m_roles[role]);
-        }
+        
+        return transfer->property(m_roles[role]);
     }
     
     return QVariant();
@@ -121,7 +118,7 @@ QVariant TransferModel::data(const QModelIndex &index, int role) const {
 QMap<int, QVariant> TransferModel::itemData(const QModelIndex &index) const {
     QMap<int, QVariant> map;
     
-    if (Transfer *transfer = Transfers::instance()->get(index.row())) {
+    if (const Transfer *transfer = Transfers::instance()->get(index.row())) {
         QHashIterator<int, QByteArray> iterator(m_roles);
         
         while (iterator.hasNext()) {
@@ -143,22 +140,20 @@ bool TransferModel::setData(const QModelIndex &index, const QVariant &value, int
 
 bool TransferModel::setItemData(const QModelIndex &index, const QMap<int, QVariant> &roles) {
     QMapIterator<int, QVariant> iterator(roles);
-    bool ok = false;
     
     while (iterator.hasNext()) {
         iterator.next();
-        ok = setData(index, iterator.value(), iterator.key());
         
-        if (!ok) {
+        if (!setData(index, iterator.value(), iterator.key())) {
             return false;
         }
     }
     
-    return ok;
+    return true;
 }
 
 QVariant TransferModel::data(int row, const QByteArray &role) const {
-    if (Transfer *transfer = Transfers::instance()->get(row)) {
+    if (const Transfer *transfer = Transfers::instance()->get(row)) {
         return transfer->property(role);
     }
 
@@ -168,8 +163,8 @@ QVariant TransferModel::data(int row, const QByteArray &role) const {
 QVariantMap TransferModel::itemData(int row) const {
     QVariantMap map;
     
-    if (Transfer *transfer = Transfers::instance()->get(row)) {
-        foreach (QByteArray value, m_roles.values()) {
+    if (const Transfer *transfer = Transfers::instance()->get(row)) {
+        foreach (const QByteArray &value, m_roles.values()) {
             map[value] = transfer->property(value);
         }
     }
@@ -187,18 +182,16 @@ bool TransferModel::setData(int row, const QVariant &value, const QByteArray &ro
 
 bool TransferModel::setItemData(int row, const QVariantMap &roles) {
     QMapIterator<QString, QVariant> iterator(roles);
-    bool ok = false;
     
     while (iterator.hasNext()) {
         iterator.next();
-        ok = setData(row, iterator.value(), iterator.key().toUtf8());
-
-        if (!ok) {
+        
+        if (!setData(row, iterator.value(), iterator.key().toUtf8())) {
             return false;
         }
     }
     
-    return ok;
+    return true;
 }
 
 int TransferModel::match(const QByteArray &role, const QVariant &value) const {
@@ -231,6 +224,7 @@ void TransferModel::onTransferAdded(Transfer *transfer) {
     connect(transfer, SIGNAL(titleChanged()), this, SLOT(onTransferTitleChanged()));
     connect(transfer, SIGNAL(categoryChanged()), this, SLOT(onTransferCategoryChanged()));
     connect(transfer, SIGNAL(priorityChanged()), this, SLOT(onTransferPriorityChanged()));
+    connect(transfer, SIGNAL(bytesTransferredChanged()), this, SLOT(onTransferProgressChanged()));
     connect(transfer, SIGNAL(progressChanged()), this, SLOT(onTransferProgressChanged()));
     connect(transfer, SIGNAL(sizeChanged()), this, SLOT(onTransferSizeChanged()));
     connect(transfer, SIGNAL(statusChanged()), this, SLOT(onTransferStatusChanged()));

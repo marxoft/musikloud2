@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Stuart Howarth <showarth@marxoft.co.uk>
+ * Copyright (C) 2016 Stuart Howarth <showarth@marxoft.co.uk>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -30,9 +30,9 @@ class TransferModel : public QAbstractListModel
 public:
     enum Roles {
         BytesTransferredRole = Qt::UserRole + 1,
-        CanConvertToAudioRole,
-        ConvertToAudioRole,
         CategoryRole,
+        CustomCommandRole,
+        CustomCommandOverrideEnabledRole,
         DownloadPathRole,
         ErrorStringRole,
         FileNameRole,
@@ -40,13 +40,14 @@ public:
         PriorityRole,
         PriorityStringRole,
         ProgressRole,
-        ResourceIdRole,
+        ProgressStringRole,
         ServiceRole,
         SizeRole,
         StatusRole,
         StatusStringRole,
         StreamIdRole,
         TitleRole,
+        TrackIdRole,
         TransferTypeRole,
         UrlRole
     };
@@ -88,7 +89,7 @@ private Q_SLOTS:
     void onTransferStatusChanged();
     
 Q_SIGNALS:
-    void countChanged(int c);
+    void countChanged(int count);
     
 private:
     QHash<int, QByteArray> m_roles;

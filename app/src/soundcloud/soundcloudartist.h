@@ -38,7 +38,7 @@ public:
     explicit SoundCloudArtist(QObject *parent = 0);
     explicit SoundCloudArtist(const QString &id, QObject *parent = 0);
     explicit SoundCloudArtist(const QVariantMap &artist, QObject *parent = 0);
-    explicit SoundCloudArtist(SoundCloudArtist *artist, QObject *parent = 0);
+    explicit SoundCloudArtist(const SoundCloudArtist *artist, QObject *parent = 0);
         
     QString errorString() const;
     
@@ -64,21 +64,7 @@ public Q_SLOTS:
     void checkIfFollowed();
     void follow();
     void unfollow();
-    
-private:
-    void setFollowed(bool s);
-    void setFollowersCount(qint64 c);
-    
-    void setOnline(bool o);
-    
-    void setPlaylistCount(qint64 c);
-    
-    void setTrackCount(qint64 c);
-    
-    void setWebsiteTitle(const QString &t);
-    void setWebsiteUrl(const QUrl &u);
-    
-    void initRequest();
+    void cancel();
         
 private Q_SLOTS:
     void onArtistRequestFinished();
@@ -102,7 +88,21 @@ Q_SIGNALS:
     void websiteTitleChanged();
     void websiteUrlChanged();
     
-private:    
+private:
+    void setFollowed(bool s);
+    void setFollowersCount(qint64 c);
+    
+    void setOnline(bool o);
+    
+    void setPlaylistCount(qint64 c);
+    
+    void setTrackCount(qint64 c);
+    
+    void setWebsiteTitle(const QString &t);
+    void setWebsiteUrl(const QUrl &u);
+    
+    void initRequest();
+    
     QSoundCloud::ResourcesRequest *m_request;
     
     bool m_followed;

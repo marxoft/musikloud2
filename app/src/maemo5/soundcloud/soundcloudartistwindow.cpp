@@ -21,7 +21,6 @@
 #include "navdelegate.h"
 #include "nowplayingaction.h"
 #include "resources.h"
-#include "settings.h"
 #include "soundcloud.h"
 #include "soundcloudartistswindow.h"
 #include "soundcloudplaylistswindow.h"
@@ -81,7 +80,7 @@ SoundCloudArtistWindow::SoundCloudArtistWindow(SoundCloudArtist *artist, Stacked
             this, SLOT(onArtistUpdateStatusChanged(QSoundCloud::ResourcesRequest::Status)));
     connect(m_artist, SIGNAL(followedChanged()), this, SLOT(onArtistFollowedChanged())); 
     
-    if ((!m_artist->isFollowed()) && (!SoundCloud::instance()->userId().isEmpty())) {
+    if ((!m_artist->isFollowed()) && (!SoundCloud::userId().isEmpty())) {
         m_artist->checkIfFollowed();
     }
 }
@@ -130,8 +129,8 @@ void SoundCloudArtistWindow::loadBaseUi() {
 void SoundCloudArtistWindow::loadArtistUi() {
     setWindowTitle(m_artist->name());
     
-    m_followButton->setEnabled((!SoundCloud::instance()->userId().isEmpty())
-                               && (m_artist->id() != SoundCloud::instance()->userId()));
+    m_followButton->setEnabled((!SoundCloud::userId().isEmpty())
+                               && (m_artist->id() != SoundCloud::userId()));
     m_followButton->setText(m_artist->isFollowed() ? tr("Unfollow") : tr("Follow"));
     m_titleLabel->setText(m_titleLabel->fontMetrics().elidedText(m_artist->name(), Qt::ElideRight, 250));
     m_statsLabel->setText(tr("%1 %2\n%3 %4").arg(Utils::formatLargeNumber(m_artist->followersCount()))
@@ -183,7 +182,7 @@ void SoundCloudArtistWindow::showTracks() {
 }
 
 void SoundCloudArtistWindow::showResource(const QUrl &url) {
-    QVariantMap resource = Resources::getResourceFromUrl(url.toString());
+    const QVariantMap resource = Resources::getResourceFromUrl(url.toString());
     
     if (resource.value("service") != Resources::SOUNDCLOUD) {
         QDesktopServices::openUrl(url);
@@ -262,7 +261,7 @@ void SoundCloudArtistWindow::onArtistStatusChanged(QSoundCloud::ResourcesRequest
             this, SLOT(onArtistUpdateStatusChanged(QSoundCloud::ResourcesRequest::Status)));
     connect(m_artist, SIGNAL(followedChanged()), this, SLOT(onArtistFollowedChanged())); 
     
-    if ((!m_artist->isFollowed()) && (!SoundCloud::instance()->userId().isEmpty())) {
+    if ((!m_artist->isFollowed()) && (!SoundCloud::userId().isEmpty())) {
         m_artist->checkIfFollowed();
     }
 }

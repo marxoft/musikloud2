@@ -23,15 +23,18 @@
 class SoundCloudComment : public MKComment
 {
     Q_OBJECT
+    
+    Q_PROPERTY(QString errorString READ errorString NOTIFY statusChanged);
+    Q_PROPERTY(QSoundCloud::ResourcesRequest::Status status READ status NOTIFY statusChanged)
 
 public:
     explicit SoundCloudComment(QObject *parent = 0);
     explicit SoundCloudComment(const QString &id, QObject *parent = 0);
     explicit SoundCloudComment(const QVariantMap &comment, QObject *parent = 0);
-    explicit SoundCloudComment(SoundCloudComment *comment, QObject *parent = 0);
+    explicit SoundCloudComment(const SoundCloudComment *comment, QObject *parent = 0);
     
     QString errorString() const;
-        
+    
     QSoundCloud::ResourcesRequest::Status status() const;
     
     Q_INVOKABLE void loadComment(const QString &id);
@@ -40,6 +43,7 @@ public:
 public Q_SLOTS:
     void addComment();
     void addComment(const QVariantMap &comment);
+    void cancel();
     
 private:
     void initRequest();

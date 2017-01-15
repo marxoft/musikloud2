@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Stuart Howarth <showarth@marxoft.co.uk>
+ * Copyright (C) 2016 Stuart Howarth <showarth@marxoft.co.uk>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,42 +19,58 @@
 
 #include "dialog.h"
 #include "pluginstreammodel.h"
-#include <QUrl>
 
 class CategoryNameModel;
 class ValueSelector;
+class QScrollArea;
+class QCheckBox;
+class QLineEdit;
 class QDialogButtonBox;
-class QGridLayout;
+class QHBoxLayout;
 
 class PluginDownloadDialog : public Dialog
 {
     Q_OBJECT
+
+    Q_PROPERTY(QString trackId READ trackId)
+    Q_PROPERTY(QString streamId READ streamId)
+    Q_PROPERTY(QString category READ category)
+    Q_PROPERTY(QString customCommand READ customCommand)
+    Q_PROPERTY(bool customCommandOverrideEnabled READ customCommandOverrideEnabled)
     
 public:
-    explicit PluginDownloadDialog(const QString &service, const QString &resourceId, const QUrl &streamUrl,
-                                  const QString &title, QWidget *parent = 0);
+    explicit PluginDownloadDialog(const QString &service, QWidget *parent = 0);
     
-protected:
-    void showEvent(QShowEvent *e);
+    QString trackId() const;
+    
+    QString streamId() const;
+
+    QString category() const;
+
+    QString customCommand() const;
+    bool customCommandOverrideEnabled() const;
+
+public Q_SLOTS:
+    virtual void accept();
+
+    void list(const QString &trackId, bool listStreams = true);
     
 private Q_SLOTS:
-    void onCategoryChanged();
-    void onStreamChanged();
     void onStreamModelStatusChanged(ResourcesRequest::Status status);
-    
-    void addDownload();
-    
+
 private:
-    QString m_id;
-    QUrl m_url;
-    QString m_title;
     PluginStreamModel *m_streamModel;
     CategoryNameModel *m_categoryModel;
     
+    QScrollArea *m_scrollArea;
+    QCheckBox *m_commandCheckBox;
+    QLineEdit *m_commandEdit;
     ValueSelector *m_streamSelector;
     ValueSelector *m_categorySelector;
     QDialogButtonBox *m_buttonBox;
-    QGridLayout *m_layout;
+    QHBoxLayout *m_layout;
+
+    QString m_trackId;
 };
 
 #endif // PLUGINDOWNLOADDIALOG_H

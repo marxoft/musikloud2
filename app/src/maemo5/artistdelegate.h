@@ -34,7 +34,7 @@ private:
     ImageCache *m_cache;
     
     int m_nameRole;
-    int m_thumbnailRole;
+    int m_thumbnailRole;    
 };
 
 #endif // ARTISTDELEGATE_H

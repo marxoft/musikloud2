@@ -1,7 +1,0 @@
-#!/bin/sh
-
-set -e
-
-chmod a+x /opt/musikloud2/plugins/mixcloud/mixcloud.py
-
-exit 0

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Stuart Howarth <showarth@marxoft.co.uk>
+ * Copyright (C) 2016 Stuart Howarth <showarth@marxoft.co.uk>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -63,7 +63,7 @@ public Q_SLOTS:
     void clear();
     
 Q_SIGNALS:
-    void countChanged(int c);
+    void countChanged(int count);
     void textAlignmentChanged();
     
 protected:

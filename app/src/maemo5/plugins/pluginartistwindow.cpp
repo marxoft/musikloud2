@@ -25,8 +25,6 @@
 #include "plugintrackswindow.h"
 #include "plugintrackwindow.h"
 #include "resources.h"
-#include "resourcesplugins.h"
-#include "settings.h"
 #include "textbrowser.h"
 #include "utils.h"
 #include <QScrollArea>
@@ -116,31 +114,35 @@ void PluginArtistWindow::loadArtistUi() {
 }
 
 void PluginArtistWindow::showPlaylists() {
-    if (!ResourcesPlugins::instance()->resourceTypeIsSupported(m_artist->service(), Resources::PLAYLIST)) {
+    const QString playlistsId = m_artist->playlistsId();
+    
+    if (playlistsId.isEmpty()) {
         QMaemo5InformationBox::information(this, tr("This artist does not have any playlists"));
         return;
     }
     
     PluginPlaylistsWindow *window = new PluginPlaylistsWindow(this);
     window->setWindowTitle(tr("%1's playlists").arg(m_artist->name()));
-    window->list(m_artist->service(), m_artist->id());
+    window->list(m_artist->service(), playlistsId);
     window->show();
 }
 
 void PluginArtistWindow::showTracks() {
-    if (!ResourcesPlugins::instance()->resourceTypeIsSupported(m_artist->service(), Resources::TRACK)) {
+    const QString tracksId = m_artist->tracksId();
+    
+    if (tracksId.isEmpty()) {
         QMaemo5InformationBox::information(this, tr("This artist does not have any tracks"));
         return;
     }
     
     PluginTracksWindow *window = new PluginTracksWindow(this);
     window->setWindowTitle(tr("%1's tracks").arg(m_artist->name()));
-    window->list(m_artist->service(), m_artist->id());
+    window->list(m_artist->service(), tracksId);
     window->show();
 }
 
 void PluginArtistWindow::showResource(const QUrl &url) {
-    QVariantMap resource = Resources::getResourceFromUrl(url.toString());
+    const QVariantMap resource = Resources::getResourceFromUrl(url.toString());
     
     if (resource.value("service") != m_artist->service()) {
         QDesktopServices::openUrl(url);

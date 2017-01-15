@@ -96,11 +96,10 @@ void TrackDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
     textRect.setTop(textRect.top() + 8);
     textRect.setBottom(textRect.bottom() - 8);
     
-    QFontMetrics fm = painter->fontMetrics();
-    
-    QString duration = index.data(m_durationRole).toString();
-    QString title = fm.elidedText(index.data(m_titleRole).toString(), Qt::ElideRight,
-                                  textRect.width() - fm.width(duration) - 8);
+    const QFontMetrics fm = painter->fontMetrics();
+    const QString duration = index.data(m_durationRole).toString();
+    const QString title = fm.elidedText(index.data(m_titleRole).toString(), Qt::ElideRight,
+                                        textRect.width() - fm.width(duration) - 8);
     
     painter->drawText(textRect, Qt::AlignLeft | Qt::AlignTop, title);
     painter->drawText(textRect, Qt::AlignRight | Qt::AlignTop, duration);

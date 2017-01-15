@@ -21,11 +21,11 @@ SoundCloudNavModel::SoundCloudNavModel(QObject *parent) :
     QStringListModel(parent)
 {
     reload();
-    connect(SoundCloud::instance(), SIGNAL(userIdChanged()), this, SLOT(reload()));
+    connect(SoundCloud::instance(), SIGNAL(userIdChanged(QString)), this, SLOT(reload()));
 }
 
 void SoundCloudNavModel::reload() {
-    if (SoundCloud::instance()->userId().isEmpty()) {
+    if (SoundCloud::userId().isEmpty()) {
         setStringList(QStringList() << tr("Accounts") << tr("Search"));
     }
     else {

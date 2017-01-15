@@ -17,7 +17,6 @@
 #ifndef NOWPLAYINGACTION_H
 #define NOWPLAYINGACTION_H
 
-#include "audioplayer.h"
 #include <QWidgetAction>
 #include <QMaemo5ValueButton>
 
@@ -51,7 +50,7 @@ protected:
 private Q_SLOTS:
     void showNowPlayingWindow();
     
-    void onCurrentIndexChanged(int index);
+    void onMetaDataChanged();
     void onImageReady();
 
 private:

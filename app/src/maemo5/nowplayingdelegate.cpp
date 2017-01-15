@@ -39,11 +39,10 @@ void NowPlayingDelegate::paint(QPainter *painter, const QStyleOptionViewItem &op
     textRect.setTop(textRect.top() + 8);
     textRect.setBottom(textRect.bottom() - 8);
     
-    QFontMetrics fm = painter->fontMetrics();
-    
-    QString duration = index.data(TrackModel::DurationStringRole).toString();
-    QString title = fm.elidedText(index.data(TrackModel::TitleRole).toString(), Qt::ElideRight,
-                                  textRect.width() - fm.width(duration) - 8);
+    const QFontMetrics fm = painter->fontMetrics();
+    const QString duration = index.data(TrackModel::DurationStringRole).toString();
+    const QString title = fm.elidedText(index.data(TrackModel::TitleRole).toString(), Qt::ElideRight,
+                                        textRect.width() - fm.width(duration) - 8);
     
     painter->drawText(textRect, Qt::AlignLeft | Qt::AlignTop, title);
     painter->drawText(textRect, Qt::AlignRight | Qt::AlignTop, duration);
@@ -56,11 +55,15 @@ void NowPlayingDelegate::paint(QPainter *painter, const QStyleOptionViewItem &op
     if (artist.isEmpty()) {
         artist = tr("Unknown artist");
     }
-        
+    
     painter->save();
     painter->setFont(font);
     painter->setPen(QApplication::palette().color(QPalette::Mid));
     painter->drawText(textRect, Qt::AlignLeft | Qt::AlignBottom,
                       QFontMetrics(font).elidedText(artist, Qt::ElideRight, textRect.width()));
     painter->restore();
+}
+
+QSize NowPlayingDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &) const {
+    return QSize(option.rect.width(), 70);
 }

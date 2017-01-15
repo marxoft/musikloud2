@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Stuart Howarth <showarth@marxoft.co.uk>
+ * Copyright (C) 2016 Stuart Howarth <showarth@marxoft.co.uk>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,6 +20,10 @@
 #include "selectionmodel.h"
 #include "resourcesrequest.h"
 
+namespace QSoundCloud {
+    class StreamsRequest;
+}
+
 class PluginStreamModel : public SelectionModel
 {
     Q_OBJECT
@@ -30,15 +34,15 @@ class PluginStreamModel : public SelectionModel
     
 public:
     explicit PluginStreamModel(QObject *parent = 0);
+
+    QString errorString() const;
     
     QString service() const;
-    void setService(const QString &service);
-    
-    QString errorString() const;
+    void setService(const QString &s);
     
     ResourcesRequest::Status status() const;
     
-    Q_INVOKABLE void list(const QString &id);
+    Q_INVOKABLE void list(const QString &resourceId);
         
 public Q_SLOTS:
     void cancel();
@@ -46,15 +50,28 @@ public Q_SLOTS:
 
 private Q_SLOTS:
     void onRequestFinished();
+    void onSoundCloudRequestFinished();
     
 Q_SIGNALS:
     void serviceChanged();
     void statusChanged(ResourcesRequest::Status s);
         
 private:
-    ResourcesRequest *m_request;
+    void setErrorString(const QString &e);
     
-    QString m_id;
+    void setStatus(ResourcesRequest::Status s);
+    
+    ResourcesRequest* request();
+    QSoundCloud::StreamsRequest* soundcloudRequest();
+    
+    ResourcesRequest *m_request;
+    QSoundCloud::StreamsRequest *m_soundcloudRequest;
+    
+    QString m_errorString;
+    QString m_service;
+    QString m_resourceId;
+    
+    ResourcesRequest::Status m_status;
 };
     
 #endif // PLUGINSTREAMMODEL_H

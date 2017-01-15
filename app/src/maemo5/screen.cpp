@@ -19,13 +19,9 @@
 
 Screen* Screen::self = 0;
 
-Screen::Screen(QObject *parent) :
-    QObject(parent)
+Screen::Screen() :
+    QObject()
 {
-    if (!self) {
-        self = this;
-    }
-
     QDBusConnection::systemBus().connect("",
                                          "/com/nokia/mce/signal",
                                          "com.nokia.mce.signal",
@@ -35,13 +31,11 @@ Screen::Screen(QObject *parent) :
 }
 
 Screen::~Screen() {
-    if (self == this) {
-        self = 0;
-    }
+    self = 0;
 }
 
 Screen* Screen::instance() {
-    return self;
+    return self ? self : self = new Screen;
 }
 
 void Screen::onScreenLockStateChanged(const QString &state) {

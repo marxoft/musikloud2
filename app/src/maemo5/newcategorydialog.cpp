@@ -59,13 +59,13 @@ void NewCategoryDialog::setPath(const QString &path) {
 }
 
 void NewCategoryDialog::addCategory() {
-    Settings::instance()->addCategory(m_nameEdit->text(), m_path);
+    Settings::addCategory(m_nameEdit->text(), m_path);
     accept();
 }
 
 void NewCategoryDialog::showFileDialog() {
-    QString path = QFileDialog::getExistingDirectory(this, tr("Download path"),
-                                                     m_path.isEmpty() ? Settings::instance()->downloadPath() : m_path);
+    const QString path = QFileDialog::getExistingDirectory(this, tr("Download path"),
+                                                           m_path.isEmpty() ? Settings::downloadPath() : m_path);
 
     if (!path.isEmpty()) {
         m_path = path;
@@ -80,4 +80,3 @@ void NewCategoryDialog::showFileDialog() {
 void NewCategoryDialog::onNameTextChanged(const QString &text) {
     m_doneButton->setEnabled((!text.isEmpty()) && (!m_path.isEmpty()));
 }
-

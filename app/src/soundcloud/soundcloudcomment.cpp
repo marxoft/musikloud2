@@ -15,12 +15,11 @@
  */
 
 #include "soundcloudcomment.h"
+#include "definitions.h"
+#include "logger.h"
 #include "resources.h"
 #include "soundcloud.h"
 #include <QDateTime>
-#ifdef MUSIKLOUD_DEBUG
-#include <QDebug>
-#endif
 
 SoundCloudComment::SoundCloudComment(QObject *parent) :
     MKComment(parent),
@@ -45,7 +44,7 @@ SoundCloudComment::SoundCloudComment(const QVariantMap &comment, QObject *parent
     loadComment(comment);
 }
 
-SoundCloudComment::SoundCloudComment(SoundCloudComment *comment, QObject *parent) :
+SoundCloudComment::SoundCloudComment(const SoundCloudComment *comment, QObject *parent) :
     MKComment(comment, parent),
     m_request(0)
 {
@@ -64,14 +63,17 @@ void SoundCloudComment::loadComment(const QString &id) {
         return;
     }
     
+    setId(id);
     initRequest();
     m_request->get("/comments/" + id);
     connect(m_request, SIGNAL(finished()), this, SLOT(onCommentRequestFinished()));
+    emit changed();
     emit statusChanged(status());
 }
 
 void SoundCloudComment::loadComment(const QVariantMap &comment) {
-    QVariantMap user = comment.value("user").toMap();
+    const QVariantMap user = comment.value("user").toMap();
+    const QString thumbnail = user.value("avatar_url").toString();
     
     setArtist(user.value("username").toString());
     setArtistId(user.value("id").toString());
@@ -79,8 +81,15 @@ void SoundCloudComment::loadComment(const QVariantMap &comment) {
     setDate(QDateTime::fromString(comment.value("created_at").toString(),
                                   "yyyy/MM/dd HH:mm:ss +0000").toString("dd MMM yyyy"));
     setId(comment.value("id").toString());
-    setThumbnailUrl(user.value("avatar_url").toString());
     setTrackId(comment.value("track_id").toString());
+    setUrl(comment.value("url").toString());
+
+    if (!thumbnail.isEmpty()) {
+        setThumbnailUrl(QString("%1-t%2x%2.jpg").arg(thumbnail.left(thumbnail.lastIndexOf('-'))).arg(THUMBNAIL_SIZE));
+    }
+    else {
+        setThumbnailUrl(QString());
+    }
 }
 
 void SoundCloudComment::addComment() {
@@ -88,12 +97,13 @@ void SoundCloudComment::addComment() {
         return;
     }
     
+    Logger::log("SoundCloudComment::addComment()", Logger::MediumVerbosity);
     initRequest();
-    
     QVariantMap resource;
     resource["body"] = body();
     m_request->insert(resource, QString("/tracks/%1/comments").arg(trackId()));
     connect(m_request, SIGNAL(finished()), this, SLOT(onAddCommentRequestFinished()));
+    emit changed();
     emit statusChanged(status());
 }
 
@@ -102,13 +112,21 @@ void SoundCloudComment::addComment(const QVariantMap &comment) {
     addComment();
 }
 
+void SoundCloudComment::cancel() {
+    if (status() == QSoundCloud::ResourcesRequest::Loading) {
+        m_request->cancel();
+        emit changed();
+        emit statusChanged(status());
+    }
+}
+
 void SoundCloudComment::initRequest() {
     if (!m_request) {
         m_request = new QSoundCloud::ResourcesRequest(this);
-        m_request->setClientId(SoundCloud::instance()->clientId());
-        m_request->setClientSecret(SoundCloud::instance()->clientSecret());
-        m_request->setAccessToken(SoundCloud::instance()->accessToken());
-        m_request->setRefreshToken(SoundCloud::instance()->refreshToken());
+        m_request->setClientId(SoundCloud::clientId());
+        m_request->setClientSecret(SoundCloud::clientSecret());
+        m_request->setAccessToken(SoundCloud::accessToken());
+        m_request->setRefreshToken(SoundCloud::refreshToken());
     
         connect(m_request, SIGNAL(accessTokenChanged(QString)), SoundCloud::instance(), SLOT(setAccessToken(QString)));
         connect(m_request, SIGNAL(refreshTokenChanged(QString)), SoundCloud::instance(), SLOT(setRefreshToken(QString)));
@@ -121,18 +139,22 @@ void SoundCloudComment::onCommentRequestFinished() {
     }
     
     disconnect(m_request, SIGNAL(finished()), this, SLOT(onCommentRequestFinished()));
+    emit changed();
     emit statusChanged(status());
 }
 
 void SoundCloudComment::onAddCommentRequestFinished() {
     if (m_request->status() == QSoundCloud::ResourcesRequest::Ready) {
         loadComment(m_request->result().toMap());
+        Logger::log("SoundCloudComment::onAddCommentRequestFinished(). Comment added. ID: " + id(),
+                    Logger::MediumVerbosity);
         emit SoundCloud::instance()->commentAdded(this);
-#ifdef MUSIKLOUD_DEBUG
-        qDebug() << "SoundCloudComment::onAddCommentRequestFinished OK" << trackId();
-#endif
+    }
+    else {
+        Logger::log("SoundCloudComment::onAddCommentRequestFinished(). Error: " + errorString());
     }
     
     disconnect(m_request, SIGNAL(finished()), this, SLOT(onAddCommentRequestFinished()));
+    emit changed();
     emit statusChanged(status());
 }

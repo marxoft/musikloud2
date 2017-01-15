@@ -15,38 +15,127 @@
  */
 
 #include "plugintransfer.h"
+#include "logger.h"
+#include "pluginmanager.h"
 #include "resources.h"
 #include "resourcesrequest.h"
+#include <qsoundcloud/streamsrequest.h>
+#include <QFileInfo>
 
 PluginTransfer::PluginTransfer(const QString &service, QObject *parent) :
     Transfer(parent),
-    m_streamsRequest(0)
+    m_streamsRequest(0),
+    m_soundcloudStreamsRequest(0)
 {
     setService(service);
 }
 
 void PluginTransfer::listStreams() {
+    if (ResourcesRequest *r = streamsRequest()) {
+        Logger::log("PluginTransfer::listStreams(). ID: " + trackId(), Logger::MediumVerbosity);
+        r->list(Resources::STREAM, trackId());
+    }
+    else {
+        setErrorString(tr("No streams plugin found for service '%1'").arg(service()));
+        Logger::log("PluginTransfer::listStreams(). Error: " + errorString());
+        setStatus(Failed);
+    }
+}
+
+ResourcesRequest* PluginTransfer::streamsRequest() {
     if (!m_streamsRequest) {
-        m_streamsRequest = new ResourcesRequest(this);
-        connect(m_streamsRequest, SIGNAL(finished()), this, SLOT(onStreamsRequestFinished()));
+        m_streamsRequest = PluginManager::instance()->createRequestForService(service(), this);
+
+        if (m_streamsRequest) {
+            connect(m_streamsRequest, SIGNAL(finished()), this, SLOT(onStreamsRequestFinished()));
+        }
+    }
+
+    return m_streamsRequest;
+}
+
+QSoundCloud::StreamsRequest* PluginTransfer::soundcloudStreamsRequest() {
+    if (!m_soundcloudStreamsRequest) {
+        m_soundcloudStreamsRequest = new QSoundCloud::StreamsRequest(this);
+        connect(m_soundcloudStreamsRequest, SIGNAL(finished()), this, SLOT(onSoundCloudStreamsRequestFinished()));
     }
     
-    m_streamsRequest->setService(service());
-    m_streamsRequest->list(Resources::STREAM, resourceId());
+    return m_soundcloudStreamsRequest;
 }
 
 void PluginTransfer::onStreamsRequestFinished() {
     if (m_streamsRequest->status() == ResourcesRequest::Ready) {
-        QVariantList list = m_streamsRequest->result().toMap().value("items").toList();
+        const QVariantMap result = m_streamsRequest->result().toMap();
         
-        foreach (QVariant v, list) {
-            QVariantMap stream = v.toMap();
-        
-            if (stream.value("id") == streamId()) {
-                QString ext = stream.value("ext").toString();
+        if (result.contains("items")) {
+            const QVariantList list = result.value("items").toList();
+            
+            foreach (const QVariant &v, list) {
+                const QVariantMap stream = v.toMap();
                 
-                if (!ext.isEmpty()) {
-                    setFileExtension(ext);
+                if (stream.value("id") == streamId()) {
+                    const QFileInfo info(downloadPath() + fileName());
+                    QString suffix = info.suffix();
+                    
+                    if (suffix.isEmpty()) {
+                        suffix = stream.value("ext").toString();
+                        
+                        if (!suffix.isEmpty()) {
+                            if (!suffix.startsWith(".")) {
+                                suffix.prepend(".");
+                            }
+                            
+                            setFileName(info.completeBaseName() + suffix);
+                        }
+                    }
+                    
+                    startDownload(stream.value("url").toString());
+                    return;
+                }
+            }
+        }
+        else if (result.contains("service")) {
+            const QString service = result.value("service").toString();
+            
+            if (service == Resources::SOUNDCLOUD) {
+                soundcloudStreamsRequest()->get(result.value("id").toString());
+            }
+            else {
+                setErrorString(tr("Attempted redirect to unsupported service '%1'").arg(service));
+                Logger::log("PluginTransfer::onStreamsRequestFinished(). Error: " + errorString());
+                setStatus(Failed);
+            }
+            
+            return;
+        }
+    }
+    
+    setErrorString(tr("No stream URL found"));
+    Logger::log("PluginTransfer::onStreamsRequestFinished(). Error: " + errorString());
+    setStatus(Failed);
+}
+
+void PluginTransfer::onSoundCloudStreamsRequestFinished() {
+    if (m_soundcloudStreamsRequest->status() == QSoundCloud::StreamsRequest::Ready) {
+        const QVariantList list = m_soundcloudStreamsRequest->result().toList();
+        
+        foreach (const QVariant &v, list) {
+            const QVariantMap stream = v.toMap();
+            
+            if (stream.value("id") == streamId()) {
+                const QFileInfo info(downloadPath() + fileName());
+                QString suffix = info.suffix();
+                
+                if (suffix.isEmpty()) {
+                    suffix = stream.value("ext").toString();
+                    
+                    if (!suffix.isEmpty()) {
+                        if (!suffix.startsWith(".")) {
+                            suffix.prepend(".");
+                        }
+                        
+                        setFileName(info.completeBaseName() + suffix);
+                    }
                 }
                 
                 startDownload(stream.value("url").toString());
@@ -56,5 +145,6 @@ void PluginTransfer::onStreamsRequestFinished() {
     }
     
     setErrorString(tr("No stream URL found"));
+    Logger::log("PluginTransfer::onSoundCloudStreamsRequestFinished(). Error: " + errorString());
     setStatus(Failed);
 }

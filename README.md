@@ -6,6 +6,7 @@ Features include:
 
     * Browse and search tracks, sets and users.
     * Play and download tracks.
+    * Folder-based playback of local music.
     * Support for multiple SoundCloud accounts.
-    * Support for user-defined credentials and access scopes for SoundCloud.
+    * Support for user-defined credentials for SoundCloud.
     * Support for additional services via plugins.

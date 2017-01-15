@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Stuart Howarth <showarth@marxoft.co.uk>
+ * Copyright (C) 2016 Stuart Howarth <showarth@marxoft.co.uk>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -15,11 +15,10 @@
  */
 
 #include "soundcloudsearchdialog.h"
-#include "mainwindow.h"
+#include "soundcloudsearchtypemodel.h"
 #include "resources.h"
 #include "searchhistorydialog.h"
 #include "settings.h"
-#include "soundcloudsearchtypemodel.h"
 #include "valueselector.h"
 #include <QLineEdit>
 #include <QDialogButtonBox>
@@ -40,7 +39,7 @@ SoundCloudSearchDialog::SoundCloudSearchDialog(QWidget *parent) :
         
     m_typeSelector->setModel(m_typeModel);
     m_typeSelector->setCurrentIndex(qMax(0, m_typeModel->match("name",
-                                    Settings::instance()->defaultSearchType(Resources::SOUNDCLOUD))));
+                                    Settings::defaultSearchType(Resources::SOUNDCLOUD))));
     
     m_searchEdit->setPlaceholderText(tr("Search"));
     m_searchEdit->setFocus(Qt::OtherFocusReason);
@@ -55,39 +54,42 @@ SoundCloudSearchDialog::SoundCloudSearchDialog(QWidget *parent) :
     m_layout->addWidget(m_typeSelector, 1, 0);
     m_layout->addWidget(m_buttonBox, 0, 1, 2, 1, Qt::AlignBottom);
     
-    connect(m_typeSelector, SIGNAL(valueChanged(QVariant)), this, SLOT(onSearchTypeChanged()));
-    connect(m_searchEdit, SIGNAL(textChanged(QString)), this, SLOT(onSearchTextChanged(QString)));
+    connect(m_searchEdit, SIGNAL(textChanged(QString)), this, SLOT(onQueryChanged(QString)));
     connect(m_buttonBox, SIGNAL(rejected()), this, SLOT(reject()));
     connect(m_historyButton, SIGNAL(clicked()), this, SLOT(showHistoryDialog()));
-    connect(m_searchButton, SIGNAL(clicked()), this, SLOT(search()));
+    connect(m_searchButton, SIGNAL(clicked()), this, SLOT(accept()));
 }
 
-void SoundCloudSearchDialog::showEvent(QShowEvent *e) {
-    Dialog::showEvent(e);
-    m_searchEdit->setFocus(Qt::OtherFocusReason);
+QString SoundCloudSearchDialog::query() const {
+    return m_searchEdit->text();
 }
 
-void SoundCloudSearchDialog::search() {
-    if (!MainWindow::instance()->showResource(m_searchEdit->text())) {
-        QVariantMap type = m_typeSelector->currentValue().toMap();
-        Settings::instance()->addSearch(m_searchEdit->text());
-        MainWindow::instance()->search(Resources::SOUNDCLOUD, m_searchEdit->text(), type.value("type").toString(),
-                                       type.value("order").toString());
-    }
-    
-    accept();
+void SoundCloudSearchDialog::setQuery(const QString &query) {
+    m_searchEdit->setText(query);
+}
+
+QString SoundCloudSearchDialog::order() const {
+    return m_typeSelector->currentValue().toMap().value("order").toString();
+}
+
+QString SoundCloudSearchDialog::type() const {
+    return m_typeSelector->currentValue().toMap().value("type").toString();
+}
+
+void SoundCloudSearchDialog::accept() {
+    Settings::addSearch(m_searchEdit->text());
+    Settings::setDefaultSearchType(Resources::SOUNDCLOUD, m_typeSelector->valueText());
+    Dialog::accept();
 }
 
 void SoundCloudSearchDialog::showHistoryDialog() {
-    SearchHistoryDialog *dialog = new SearchHistoryDialog(this);
-    dialog->open();
-    connect(dialog, SIGNAL(searchChosen(QString)), m_searchEdit, SLOT(setText(QString)));
+    SearchHistoryDialog dialog(this);
+    
+    if (dialog.exec() == QDialog::Accepted) {
+        setQuery(dialog.query());
+    }
 }
 
-void SoundCloudSearchDialog::onSearchTextChanged(const QString &text) {
-    m_searchButton->setEnabled(!text.isEmpty());
-}
-
-void SoundCloudSearchDialog::onSearchTypeChanged() {
-    Settings::instance()->setDefaultSearchType(Resources::SOUNDCLOUD, m_typeSelector->valueText());
+void SoundCloudSearchDialog::onQueryChanged(const QString &query) {
+    m_searchButton->setEnabled(!query.isEmpty());
 }

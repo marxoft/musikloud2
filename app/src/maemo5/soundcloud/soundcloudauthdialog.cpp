@@ -15,12 +15,10 @@
  */
 
 #include "soundcloudauthdialog.h"
+#include "logger.h"
 #include "soundcloud.h"
 #include "webview.h"
 #include <QVBoxLayout>
-#ifdef MUSIKLOUD_DEBUG
-#include <QDebug>
-#endif
 
 SoundCloudAuthDialog::SoundCloudAuthDialog(QWidget *parent) :
     Dialog(parent),
@@ -36,17 +34,24 @@ SoundCloudAuthDialog::SoundCloudAuthDialog(QWidget *parent) :
     connect(m_view, SIGNAL(loadFinished(bool)), this, SLOT(hideProgressIndicator()));
 }
 
-void SoundCloudAuthDialog::showEvent(QShowEvent *e) {
-    Dialog::showEvent(e);
-    m_view->setUrl(SoundCloud::instance()->authUrl());
+QString SoundCloudAuthDialog::code() const {
+    return m_code;
+}
+
+void SoundCloudAuthDialog::setCode(const QString &code) {
+    m_code = code;
+}
+
+void SoundCloudAuthDialog::login() {
+    setCode(QString());
+    m_view->setUrl(SoundCloud::authUrl());
 }
 
 void SoundCloudAuthDialog::onWebViewUrlChanged(const QUrl &url) {
-#ifdef MUSIKLOUD_DEBUG
-    qDebug() << "SoundCloudAuthDialog::onWebViewUrlChanged" << url;
-#endif
+    Logger::log("SoundCloudAuthDialog::onWebViewUrlChanged(): " + url.toString());
+    
     if (url.hasQueryItem("code")) {
-        emit codeReady(url.queryItemValue("code"));
+        setCode(url.queryItemValue("code"));
         accept();
     }
 }

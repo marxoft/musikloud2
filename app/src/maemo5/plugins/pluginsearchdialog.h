@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Stuart Howarth <showarth@marxoft.co.uk>
+ * Copyright (C) 2016 Stuart Howarth <showarth@marxoft.co.uk>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -29,21 +29,30 @@ class QGridLayout;
 class PluginSearchDialog : public Dialog
 {
     Q_OBJECT
+
+    Q_PROPERTY(QString query READ query WRITE setQuery)
+    Q_PROPERTY(QString order READ order)
+    Q_PROPERTY(QString type READ type)
     
 public:
     explicit PluginSearchDialog(const QString &service, QWidget *parent = 0);
 
-protected:
-    void showEvent(QShowEvent *e);
-    
-private Q_SLOTS:
-    void search();
+    QString query() const;
 
+    QString type() const;
+
+    QString order() const;
+
+public Q_SLOTS:
+    virtual void accept();
+    
+    void setQuery(const QString &query);
+
+private Q_SLOTS:
+    void onQueryChanged(const QString &query);
+    
     void showHistoryDialog();
 
-    void onSearchTextChanged(const QString &text);
-    void onSearchTypeChanged();
-    
 private:
     PluginSearchTypeModel *m_typeModel;
     

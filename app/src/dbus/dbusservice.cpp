@@ -15,12 +15,10 @@
  */
 
 #include "dbusservice.h"
+#include "logger.h"
 #include "resources.h"
 #include <QDBusConnection>
 #include <QStringList>
-#ifdef MUSIKLOUD_DEBUG
-#include <QDebug>
-#endif
 
 DBusService::DBusService(QObject *parent) :
     QObject(parent)
@@ -35,10 +33,9 @@ QVariantMap DBusService::requestedResource() const {
 }
 
 bool DBusService::showResource(const QString &url) {
-    QVariantMap resource = Resources::getResourceFromUrl(url);
-#ifdef MUSIKLOUD_DEBUG
-    qDebug() << "DBusService::showResource" << url << resource;
-#endif
+    Logger::log("DBusService::showResource(). URL: " + url, Logger::MediumVerbosity);
+    const QVariantMap resource = Resources::getResourceFromUrl(url);
+    
     if (resource.isEmpty()) {
         return false;
     }

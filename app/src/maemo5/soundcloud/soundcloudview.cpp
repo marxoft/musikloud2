@@ -19,7 +19,6 @@
 #include "listview.h"
 #include "navdelegate.h"
 #include "resources.h"
-#include "settings.h"
 #include "soundcloud.h"
 #include "soundcloudaccountswindow.h"
 #include "soundcloudartist.h"
@@ -61,9 +60,7 @@ SoundCloudView::SoundCloudView(QWidget *parent) :
             this, SLOT(onTrackUnfavourited(SoundCloudTrack*)));
 }
 
-void SoundCloudView::search(const QString &query, const QString &type, const QString &order) {
-    Q_UNUSED(order);
-    
+void SoundCloudView::search(const QString &query, const QString &type, const QString &) {    
     QVariantMap filters;
     filters["q"] = query;
     filters["limit"] = MAX_RESULTS;
@@ -139,8 +136,18 @@ void SoundCloudView::showPlaylists() {
 }
 
 void SoundCloudView::showSearchDialog() {
-    SoundCloudSearchDialog *dialog = new SoundCloudSearchDialog(StackedWindow::currentWindow());
-    dialog->open();
+    SoundCloudSearchDialog dialog(StackedWindow::currentWindow());
+
+    if (dialog.exec() == QDialog::Accepted) {
+        const QVariantMap resource = Resources::getResourceFromUrl(dialog.query());
+        
+        if (resource.value("service") == Resources::SOUNDCLOUD) {
+            showResource(resource.value("type").toString(), resource.value("id").toString());
+        }
+        else {
+            search(dialog.query(), dialog.type(), dialog.order());
+        }
+    }
 }
 
 void SoundCloudView::showTracks() {

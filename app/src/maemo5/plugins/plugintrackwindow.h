@@ -58,10 +58,10 @@ private Q_SLOTS:
     void queueTrack();
     void shareTrack();
     
-    void downloadRelatedTrack();
+    void downloadRelatedTrack(const QModelIndex &index);
     void playRelatedTrack(const QModelIndex &index);
-    void queueRelatedTrack();
-    void shareRelatedTrack();
+    void queueRelatedTrack(const QModelIndex &index);
+    void shareRelatedTrack(const QModelIndex &index);
     void showRelatedTrack(const QModelIndex &index);
     
     void reload();
@@ -105,16 +105,11 @@ private:
     TextBrowser *m_descriptionLabel;
     QLabel *m_dateLabel;
     QLabel *m_artistLabel;
-    QLabel *m_noTracksLabel;
-    QLabel *m_noCommentsLabel;
+    QLabel *m_noResultsLabel;
     QAction *m_reloadAction;
     QAction *m_queueAction;
     QAction *m_downloadAction;
     QAction *m_shareAction;
-    QMenu *m_contextMenu;
-    QAction *m_relatedQueueAction;
-    QAction *m_relatedDownloadAction;
-    QAction *m_relatedShareAction;
     QGridLayout *m_layout;
 };
     

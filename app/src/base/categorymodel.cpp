@@ -37,12 +37,12 @@ QHash<int, QByteArray> CategoryModel::roleNames() const {
 }
 #endif
 
-int CategoryModel::rowCount(const QModelIndex &) const {
-    return m_list.size();
+int CategoryModel::rowCount(const QModelIndex &parent) const {
+    return parent.isValid() ? 0 : m_list.size();
 }
 
-int CategoryModel::columnCount(const QModelIndex &) const {
-    return 2;
+int CategoryModel::columnCount(const QModelIndex &parent) const {
+    return parent.isValid() ? 0 : 2;
 }
 
 QVariant CategoryModel::headerData(int section, Qt::Orientation orientation, int role) const {
@@ -101,11 +101,11 @@ QVariantMap CategoryModel::itemData(int row) const {
 }
 
 void CategoryModel::addCategory(const QString &name, const QString &path) {
-    Settings::instance()->addCategory(name, path);
+    Settings::addCategory(name, path);
 }
 
 void CategoryModel::removeCategory(const QString &name) {
-    Settings::instance()->removeCategory(name);
+    Settings::removeCategory(name);
 }
 
 void CategoryModel::removeCategory(int row) {
@@ -123,7 +123,7 @@ void CategoryModel::clear() {
 void CategoryModel::reload() {
     clear();
     beginResetModel();
-    m_list = Settings::instance()->categories();
+    m_list = Settings::categories();
     endResetModel();
     
     emit countChanged(rowCount());

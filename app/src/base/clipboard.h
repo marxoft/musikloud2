@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Stuart Howarth <showarth@marxoft.co.uk>
+ * Copyright (C) 2016 Stuart Howarth <showarth@marxoft.co.uk>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -19,43 +19,41 @@
 #define CLIPBOARD_H
 
 #include <QObject>
-#include <qplatformdefs.h>
-
-#ifdef MEEGO_EDITION_HARMATTAN
-class QTimer;
-#endif
 
 class Clipboard : public QObject
 {
     Q_OBJECT
-    
+
+    Q_PROPERTY(bool enabled READ isEnabled WRITE setEnabled NOTIFY enabledChanged)
     Q_PROPERTY(QString text READ text WRITE setText NOTIFY textChanged)
 
 public:
-    explicit Clipboard(QObject *parent = 0);
     ~Clipboard();
     
     static Clipboard* instance();
     
-    QString text() const;
+    static QString text();
+
+    bool isEnabled() const;
     
-public Q_SLOTS:
-    void setText(const QString &text);
+public Q_SLOTS:    
+    static void setText(const QString &text);
+
+    void setEnabled(bool enabled);
 
 private Q_SLOTS:
-    void onMonitorEnabledChanged();
     void onTextChanged();
     
 Q_SIGNALS:
+    void enabledChanged(bool enabled);
     void textChanged(const QString &text);
 
 private:
-    static Clipboard *self;
+    Clipboard();
     
-    bool m_monitor;
-#ifdef MEEGO_EDITION_HARMATTAN
-    QTimer *m_timer;
-#endif
+    static Clipboard *self;
+
+    bool m_enabled;
 };
 
 #endif // CLIPBOARD_H

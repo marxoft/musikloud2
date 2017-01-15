@@ -16,49 +16,50 @@
 
 #include "soundcloud.h"
 #include "database.h"
+#include "logger.h"
 #include <qsoundcloud/urls.h>
 #include <QSettings>
 #include <QSqlRecord>
 #if QT_VERSION >= 0x050000
 #include <QUrlQuery>
 #endif
-#ifdef MUSIKLOUD_DEBUG
-#include <QDebug>
-#endif
 
-static const QString CLIENT_ID("9b7cb759c6d41b14af05855f94bc743c");
-static const QString CLIENT_SECRET("f83369b46fe992306a90ef579d57fac4");
-static const QString REDIRECT_URI("http://marxoft.co.uk/projects/musikloud2");
-static const QStringList SCOPES = QStringList() << QSoundCloud::NON_EXPIRING_SCOPE;
+const QString SoundCloud::CLIENT_ID("9b7cb759c6d41b14af05855f94bc743c");
+const QString SoundCloud::CLIENT_SECRET("f83369b46fe992306a90ef579d57fac4");
+const QString SoundCloud::REDIRECT_URI("http://marxoft.co.uk/projects/musikloud2");
+const QStringList SoundCloud::SCOPES = QStringList() << QSoundCloud::NON_EXPIRING_SCOPE;
+
+const QRegExp SoundCloud::URL_REGEXP("http(s|)://(api\\.|)soundcloud\\.com/[\\w-_/]+");
 
 SoundCloud::FollowingCache SoundCloud::followingCache;
 
 SoundCloud* SoundCloud::self = 0;
 
-SoundCloud::SoundCloud(QObject *parent) :
-    QObject(parent)
+SoundCloud::SoundCloud() :
+    QObject()
 {
-    if (!self) {
-        self = this;
-    }
 }
 
 SoundCloud::~SoundCloud() {
-    if (self == this) {
-        self = 0;
-    }
+    self = 0;
 }
 
 SoundCloud* SoundCloud::instance() {
-    return self;
+    return self ? self : self = new SoundCloud;
+}
+
+void SoundCloud::init() {
+    if (accessToken().isEmpty()) {
+        setUserId(QString());
+    }
 }
 
 QString SoundCloud::getErrorString(const QVariantMap &error) {    
     if (error.contains("errors")) {
-        QVariantList errors = error.value("errors").toList();
+        const QVariantList errors = error.value("errors").toList();
         
         if (!errors.isEmpty()) {
-            QVariantMap em = errors.first().toMap();
+            const QVariantMap em = errors.first().toMap();
         
             if (em.contains("error_message")) {
                 return em.value("error_message").toString();
@@ -69,7 +70,7 @@ QString SoundCloud::getErrorString(const QVariantMap &error) {
     return tr("Unknown error");
 }
 
-QUrl SoundCloud::authUrl() const {
+QUrl SoundCloud::authUrl() {
     QUrl url(QSoundCloud::AUTH_URL);
 #if QT_VERSION >= 0x050000
     QUrlQuery query(url);
@@ -78,7 +79,7 @@ QUrl SoundCloud::authUrl() const {
     query.addQueryItem("response_type", "code");
     query.addQueryItem("display", "popup");
     
-    QStringList s = scopes();
+    const QStringList s = scopes();
     
     if (!s.isEmpty()) {
         query.addQueryItem("scope", s.join(" "));
@@ -91,7 +92,7 @@ QUrl SoundCloud::authUrl() const {
     url.addQueryItem("response_type", "code");
     url.addQueryItem("display", "popup");
     
-    QStringList s = scopes();
+    const QStringList s = scopes();
     
     if (!s.isEmpty()) {
         url.addQueryItem("scope", s.join(" "));
@@ -100,7 +101,7 @@ QUrl SoundCloud::authUrl() const {
     return url;
 }
 
-QString SoundCloud::userId() const {
+QString SoundCloud::userId() {
     return QSettings().value("SoundCloud/userId").toString();
 }
 
@@ -110,11 +111,14 @@ void SoundCloud::setUserId(const QString &id) {
         followingCache.ids.clear();
         followingCache.nextHref = QString();
         followingCache.loaded = false;
-        emit userIdChanged();
+        
+        if (self) {
+            emit self->userIdChanged(id);
+        }
     }
 }
 
-QString SoundCloud::accessToken() const {
+QString SoundCloud::accessToken() {
     if (userId().isEmpty()) {
         return QString();
     }
@@ -123,7 +127,7 @@ QString SoundCloud::accessToken() const {
                                                 .arg(userId()));
     
     if (query.lastError().isValid()) {
-        qDebug() << "SoundCloud::accessToken: database error:" << query.lastError().text();
+        Logger::log("SoundCloud::accessToken: database error: " + query.lastError().text());
         return QString();
     }
     
@@ -135,21 +139,19 @@ QString SoundCloud::accessToken() const {
 }
 
 void SoundCloud::setAccessToken(const QString &token) {
+    Logger::log("SoundCloud::setAccessToken(). Token: " + token, Logger::MediumVerbosity);
     QSqlQuery query = getDatabase().exec(QString("UPDATE soundcloudAccounts SET accessToken = '%1' WHERE userId = '%2'")
                                                 .arg(token).arg(userId()));
 
     if (query.lastError().isValid()) {
-        qDebug() << "SoundCloud::setAccessToken: database error:" << query.lastError().text();
+        Logger::log("SoundCloud::setAccessToken: database error: " + query.lastError().text());
     }
-    else {
-        emit accessTokenChanged();
+    else if (self) {
+        emit self->accessTokenChanged(token);
     }
-#ifdef MUSIKLOUD_DEBUG
-    qDebug() << "SoundCloud::setAccessToken" << token;
-#endif
 }
 
-QString SoundCloud::refreshToken() const {
+QString SoundCloud::refreshToken() {
     if (userId().isEmpty()) {
         return QString();
     }
@@ -158,7 +160,7 @@ QString SoundCloud::refreshToken() const {
                                                 .arg(userId()));
     
     if (query.lastError().isValid()) {
-        qDebug() << "SoundCloud::refreshToken: database error:" << query.lastError().text();
+        Logger::log("SoundCloud::refreshToken(): database error: " + query.lastError().text());
         return QString();
     }
     
@@ -170,77 +172,83 @@ QString SoundCloud::refreshToken() const {
 }
 
 void SoundCloud::setRefreshToken(const QString &token) {
+    Logger::log("SoundCloud::setRefreshToken(). Token: " + token, Logger::MediumVerbosity);
     QSqlQuery query = getDatabase().exec(QString("UPDATE soundcloudAccounts SET refreshToken = '%1' WHERE userId = '%2'")
                                                 .arg(token).arg(userId()));
 
     if (query.lastError().isValid()) {
-        qDebug() << "SoundCloud::setRefreshToken: database error:" << query.lastError().text();
+        Logger::log("SoundCloud::setRefreshToken(): database error: " + query.lastError().text());
     }
-    else {
-        emit accessTokenChanged();
+    else if (self) {
+        emit self->accessTokenChanged(token);
     }
-#ifdef MUSIKLOUD_DEBUG
-    qDebug() << "SoundCloud::setRefreshToken" << token;
-#endif
 }
 
-QString SoundCloud::clientId() const {
+QString SoundCloud::clientId() {
     return QSettings().value("SoundCloud/clientId", CLIENT_ID).toString();
 }
 
 void SoundCloud::setClientId(const QString &id) {
+    Logger::log("SoundCloud::setClientId(). ID: " + id, Logger::MediumVerbosity);
+    
     if (id != clientId()) {
         QSettings().setValue("SoundCloud/clientId", id);
-        emit clientIdChanged();
+        
+        if (self) {
+            emit self->clientIdChanged(id);
+        }
     }
-#ifdef MUSIKLOUD_DEBUG
-    qDebug() << "SoundCloud::setClientId" << id;
-#endif
 }
 
-QString SoundCloud::clientSecret() const {
+QString SoundCloud::clientSecret() {
     return QSettings().value("SoundCloud/clientSecret", CLIENT_SECRET).toString();
 }
 
 void SoundCloud::setClientSecret(const QString &secret) {
+    Logger::log("SoundCloud::setClientSecret(). Secret: " + secret, Logger::MediumVerbosity);
+    
     if (secret != clientSecret()) {
         QSettings().setValue("SoundCloud/clientSecret", secret);
-        emit clientSecretChanged();
+        
+        if (self) {
+            emit self->clientSecretChanged(secret);
+        }
     }
-#ifdef MUSIKLOUD_DEBUG
-    qDebug() << "SoundCloud::setClientSecret" << secret;
-#endif
 }
 
-QString SoundCloud::redirectUri() const {
+QString SoundCloud::redirectUri() {
     return QSettings().value("SoundCloud/redirectUri", REDIRECT_URI).toString();
 }
 
 void SoundCloud::setRedirectUri(const QString &uri) {
+    Logger::log("SoundCloud::setRedirectUri(). URI: " + uri, Logger::MediumVerbosity);
+    
     if (uri != redirectUri()) {
         QSettings().setValue("SoundCloud/redirectUri", uri);
-        emit redirectUriChanged();
+        
+        if (self) {
+            emit self->redirectUriChanged(uri);
+        }
     }
-#ifdef MUSIKLOUD_DEBUG
-    qDebug() << "SoundCloud::setRedirectUri" << uri;
-#endif
 }
 
-QStringList SoundCloud::scopes() const {
+QStringList SoundCloud::scopes() {
     return QSettings().value("SoundCloud/scopes", SCOPES).toStringList();
 }
 
 void SoundCloud::setScopes(const QStringList &s) {
+    Logger::log("SoundCloud::setScopes(). Scopes: " + s.join(", "), Logger::MediumVerbosity);
+    
     if (s != scopes()) {
         QSettings().setValue("SoundCloud/scopes", s);
-        emit scopesChanged();
+        
+        if (self) {
+            emit self->scopesChanged(s);
+        }
     }
-#ifdef MUSIKLOUD_DEBUG
-    qDebug() << "SoundCloud::setScopes" << s;
-#endif
 }
 
-bool SoundCloud::hasScope(const QString &scope) const {
+bool SoundCloud::hasScope(const QString &scope) {
     if (userId().isEmpty()) {
         return false;
     }
@@ -249,7 +257,7 @@ bool SoundCloud::hasScope(const QString &scope) const {
                                                 .arg(userId()));
     
     if (query.lastError().isValid()) {
-        qDebug() << "SoundCloud::hasScope: database error:" << query.lastError().text();
+        Logger::log("SoundCloud::hasScope(): database error: " + query.lastError().text());
         return false;
     }
     

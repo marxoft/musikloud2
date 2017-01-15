@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Stuart Howarth <showarth@marxoft.co.uk>
+ * Copyright (C) 2016 Stuart Howarth <showarth@marxoft.co.uk>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,7 +20,7 @@
 
 SearchHistoryModel::SearchHistoryModel(QObject *parent) :
     QSortFilterProxyModel(parent),
-    m_model(new QStringListModel(Settings::instance()->searchHistory(), this)),
+    m_model(new QStringListModel(Settings::searchHistory(), this)),
     m_alignment(Qt::AlignCenter)
 {
     setSourceModel(m_model);
@@ -59,22 +59,22 @@ QVariant SearchHistoryModel::data(int row, const QByteArray &role) const {
 }
 
 void SearchHistoryModel::addSearch(const QString &query) {
-    Settings::instance()->addSearch(query);
+    Settings::addSearch(query);
 }
 
 void SearchHistoryModel::removeSearch(const QString &query) {
-    Settings::instance()->removeSearch(query);
+    Settings::removeSearch(query);
 }
 
 void SearchHistoryModel::removeSearch(int row) {
-    Settings::instance()->removeSearch(data(index(row, 0)).toString());
+    Settings::removeSearch(data(index(row, 0)).toString());
 }
 
 void SearchHistoryModel::clear() {
-    Settings::instance()->setSearchHistory(QStringList());
+    Settings::setSearchHistory(QStringList());
 }
 
 void SearchHistoryModel::reload() {
-    m_model->setStringList(Settings::instance()->searchHistory());
+    m_model->setStringList(Settings::searchHistory());
     emit countChanged(rowCount());
 }

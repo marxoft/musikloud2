@@ -46,7 +46,7 @@ class MKTrack : public QObject
     
 public:
     explicit MKTrack(QObject *parent = 0);
-    explicit MKTrack(MKTrack *track, QObject *parent = 0);
+    explicit MKTrack(const MKTrack *track, QObject *parent = 0);
     
     QString artist() const;
     QString artistId() const;
@@ -126,6 +126,8 @@ Q_SIGNALS:
     void artistChanged();
     void artistIdChanged();
     
+    void changed();
+    
     void dateChanged();
     
     void descriptionChanged();
@@ -155,7 +157,7 @@ Q_SIGNALS:
     
     void urlChanged();
 
-protected:
+private:
     QString m_artist;
     QString m_artistId;
     
@@ -189,6 +191,9 @@ protected:
     QString m_title;
     
     QUrl m_url;
+    
+    friend class AudioPlayer;
+    friend class AudioPlayerMetaData;
 };
     
 #endif // MKTRACK_H

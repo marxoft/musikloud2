@@ -47,7 +47,6 @@ private Q_SLOTS:
     void selectAccount(const QModelIndex &index);
     
     void showAuthDialog();
-    void submitCode(const QString &code);
     
     void onAuthRequestFinished();
     void onUserRequestFinished();

@@ -18,8 +18,9 @@
 #include "clipboard.h"
 #include "database.h"
 #include "dbusservice.h"
+#include "logger.h"
 #include "mainwindow.h"
-#include "resourcesplugins.h"
+#include "pluginmanager.h"
 #include "screen.h"
 #include "settings.h"
 #include "soundcloud.h"
@@ -33,29 +34,52 @@ int main(int argc, char *argv[]) {
     app.setOrganizationName("MusiKloud2");
     app.setApplicationName("MusiKloud2");
     
+    const QStringList args = app.arguments();
+    const int verbosity = args.indexOf("-v") + 1;
+    
+    if ((verbosity > 1) && (verbosity < args.size())) {
+        Logger::setVerbosity(qMax(1, args.at(verbosity).toInt()));
+    }
+    else {
+        Logger::setFileName(Settings::loggerFileName());
+        Logger::setVerbosity(Settings::loggerVerbosity());
+    }
+    
     QSslConfiguration config = QSslConfiguration::defaultConfiguration();
     config.setProtocol(QSsl::TlsV1);
     QSslConfiguration::setDefaultConfiguration(config);
 
-    Settings settings;
-    AudioPlayer player;
-    Clipboard clipboard;
+    QScopedPointer<Settings> settings(Settings::instance());
+    QScopedPointer<AudioPlayer> player(AudioPlayer::instance());
+    QScopedPointer<Clipboard> clipboard(Clipboard::instance());
+    QScopedPointer<PluginManager> plugins(PluginManager::instance());
+    QScopedPointer<Screen> screen(Screen::instance());
+    QScopedPointer<SoundCloud> soundcloud(SoundCloud::instance());
+    QScopedPointer<Transfers> transfers(Transfers::instance());
     DBusService dbus;
-    ResourcesPlugins plugins;
-    Screen screen;
-    SoundCloud soundcloud;
-    Transfers transfers;
     
     initDatabase();
-    plugins.load();
-    settings.setNetworkProxy();
-    transfers.restoreTransfers();
+    Settings::setNetworkProxy();
+    SoundCloud::init();
     
-    MainWindow window;
-    window.show();
+    player.data()->setSleepTimerDuration(Settings::sleepTimerDuration());
+    clipboard.data()->setEnabled(Settings::clipboardMonitorEnabled());
+    plugins.data()->load();
+    transfers.data()->restore();
     
-    QObject::connect(&clipboard, SIGNAL(textChanged(QString)), &window, SLOT(showResource(QString)));
-    QObject::connect(&dbus, SIGNAL(resourceRequested(QVariantMap)), &window, SLOT(showResource(QVariantMap)));
+    if (Settings::restorePlaybackQueueOnStartup()) {
+        player.data()->restoreQueue();
+    }
+    
+    QScopedPointer<MainWindow> window(MainWindow::instance());
+    window.data()->show();
+    
+    QObject::connect(settings.data(), SIGNAL(sleepTimerDurationChanged(int)),
+                     player.data(), SLOT(setSleepTimerDuration(int)));
+    QObject::connect(settings.data(), SIGNAL(clipboardMonitorEnabledChanged(bool)),
+                     clipboard.data(), SLOT(setEnabled(bool)));
+    QObject::connect(clipboard.data(), SIGNAL(textChanged(QString)), window.data(), SLOT(showResource(QString)));
+    QObject::connect(&dbus, SIGNAL(resourceRequested(QVariantMap)), window.data(), SLOT(showResource(QVariantMap)));
     
     return app.exec();
 }

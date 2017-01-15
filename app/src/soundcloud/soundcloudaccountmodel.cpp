@@ -15,6 +15,7 @@
  */
 
 #include "soundcloudaccountmodel.h"
+#include "logger.h"
 #include "soundcloud.h"
 #include <QSqlRecord>
 #include <QSqlField>
@@ -51,7 +52,7 @@ QHash<int, QByteArray> SoundCloudAccountModel::roleNames() const {
 
 QVariant SoundCloudAccountModel::data(const QModelIndex &idx, int role) const {
     if (role == ActiveRole) {
-        return SoundCloud::instance()->userId() == data(idx, UserIdRole);
+        return SoundCloud::userId() == data(idx, UserIdRole);
     }
     
     if (role >= UserIdRole) {
@@ -67,7 +68,7 @@ QVariant SoundCloudAccountModel::data(int row, const QByteArray &role) const {
 
 bool SoundCloudAccountModel::addAccount(const QString &userId, const QString &username, const QString &accessToken,
                                          const QString &refreshToken, const QString &scopes) {
-                                     
+    Logger::log(QString("SoundCloudAccountModel::addAccount(). User ID: %1, Username: %2, Access token: %3, Refresh token: %4, Scopes: %5").arg(userId).arg(username).arg(accessToken).arg(refreshToken).arg(scopes), Logger::LowVerbosity);
     QSqlField userIdField("userId", QVariant::String);
     userIdField.setValue(userId);
     
@@ -89,9 +90,22 @@ bool SoundCloudAccountModel::addAccount(const QString &userId, const QString &us
     record.append(accessTokenField);
     record.append(refreshTokenField);
     record.append(scopesField);
+        
+    const int count = rowCount();
+    
+    for (int i = 0; i < count; i++) {
+        if (data(index(i, 0)) == userId) {
+            if (setRecord(i, record)) {
+                SoundCloud::setUserId(userId);
+                return true;
+            }
+            
+            return false;
+        }
+    }
     
     if (insertRecord(-1, record)) {
-        SoundCloud::instance()->setUserId(userId);
+        SoundCloud::setUserId(userId);
         const int count = rowCount();
         emit dataChanged(index(0, 0), index(count - 1, columnCount() - 1));
         emit countChanged(count);
@@ -102,15 +116,17 @@ bool SoundCloudAccountModel::addAccount(const QString &userId, const QString &us
 }
 
 bool SoundCloudAccountModel::removeAccount(int row) {
-    QString userId = data(index(row, 0)).toString();
+    const QString userId = data(index(row, 0)).toString();
+    Logger::log(QString("SoundCloudAccountModel::removeAccount(). Row: %1, User ID: %2").arg(row).arg(userId),
+                Logger::MediumVerbosity);
     
     if (removeRows(row, 1)) {
-        if (userId == SoundCloud::instance()->userId()) {
+        if (userId == SoundCloud::userId()) {
             if (rowCount() > 0) {
                 selectAccount(0);
             }
             else {
-                SoundCloud::instance()->setUserId(QString());
+                SoundCloud::setUserId(QString());
             }
         }
         
@@ -122,10 +138,12 @@ bool SoundCloudAccountModel::removeAccount(int row) {
 }
 
 bool SoundCloudAccountModel::selectAccount(int row) {
-    QString userId = data(index(row, 0)).toString();
+    const QString userId = data(index(row, 0)).toString();
+    Logger::log(QString("SoundCloudAccountModel::selectAccount(). Row: %1, User ID: %2").arg(row).arg(userId),
+                Logger::MediumVerbosity);
     
     if (!userId.isEmpty()) {
-        SoundCloud::instance()->setUserId(userId);
+        SoundCloud::setUserId(userId);
         emit dataChanged(index(0, 0), index(rowCount() - 1, columnCount() - 1));
         return true;
     }
