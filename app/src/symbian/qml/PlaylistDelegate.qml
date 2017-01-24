@@ -30,7 +30,7 @@ MyListItem {
         }
         width: height
         source: thumbnailUrl
-        placeholderSource: "images/track.jpg"
+        placeholderSource: "images/playlist.svg"
         enabled: false
     }
     

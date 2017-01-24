@@ -426,26 +426,29 @@ maemo5 {
     qml_soundcloud.path = !:/Private/e77abf1c/qml/soundcloud
     
     images.sources = \
-        src/symbian/qml/images/artist.jpg \
+        src/symbian/qml/images/artist.svg \
         src/symbian/qml/images/avatar-frame.png \
         src/symbian/qml/images/avatar-mask.png \
-        src/symbian/qml/images/close.png \
-        src/symbian/qml/images/download.png \
-        src/symbian/qml/images/folder.png \
+        src/symbian/qml/images/close.svg \
+        src/symbian/qml/images/document.svg \
+        src/symbian/qml/images/download.svg \
+        src/symbian/qml/images/folder.svg \
+        src/symbian/qml/images/music.svg \
         src/symbian/qml/images/musikloud2.png \
-        src/symbian/qml/images/no.png \
+        src/symbian/qml/images/next.svg \
+        src/symbian/qml/images/ok.svg \
         src/symbian/qml/images/pause-active.png \
         src/symbian/qml/images/play-active.png \
-        src/symbian/qml/images/repeat.png \
-        src/symbian/qml/images/shuffle.png \
+        src/symbian/qml/images/playlist.svg \
+        src/symbian/qml/images/previous.svg \
+        src/symbian/qml/images/repeat.svg \
+        src/symbian/qml/images/shuffle.svg \
         src/symbian/qml/images/stop-active.png \
-        src/symbian/qml/images/track.jpg \
-        src/symbian/qml/images/track-large.jpg \
+        src/symbian/qml/images/track.svg \
         src/symbian/qml/images/up.png \
-        src/symbian/qml/images/upload.png \
+        src/symbian/qml/images/upload.svg \
         src/symbian/qml/images/volume.png \
-        src/symbian/qml/images/volume-mute.png \
-        src/symbian/qml/images/yes.png
+        src/symbian/qml/images/volume-mute.png
     
     images.path = !:/Private/e77abf1c/qml/images
     

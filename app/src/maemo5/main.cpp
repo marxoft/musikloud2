@@ -62,7 +62,6 @@ int main(int argc, char *argv[]) {
     Settings::setNetworkProxy();
     SoundCloud::init();
     
-    player.data()->setSleepTimerDuration(Settings::sleepTimerDuration());
     clipboard.data()->setEnabled(Settings::clipboardMonitorEnabled());
     plugins.data()->load();
     transfers.data()->restore();
@@ -74,8 +73,6 @@ int main(int argc, char *argv[]) {
     QScopedPointer<MainWindow> window(MainWindow::instance());
     window.data()->show();
     
-    QObject::connect(settings.data(), SIGNAL(sleepTimerDurationChanged(int)),
-                     player.data(), SLOT(setSleepTimerDuration(int)));
     QObject::connect(settings.data(), SIGNAL(clipboardMonitorEnabledChanged(bool)),
                      clipboard.data(), SLOT(setEnabled(bool)));
     QObject::connect(clipboard.data(), SIGNAL(textChanged(QString)), window.data(), SLOT(showResource(QString)));

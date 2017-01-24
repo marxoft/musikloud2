@@ -30,7 +30,6 @@ class QDialogButtonBox;
 class QHBoxLayout;
 class QModelIndex;
 class QScrollArea;
-class QSpinBox;
 
 class SettingsDialog : public Dialog
 {
@@ -56,7 +55,6 @@ private:
     QCheckBox *m_restoreQueueCheckBox;
     QCheckBox *m_clipboardCheckBox;
     QCheckBox *m_transfersCheckBox;
-    QSpinBox *m_sleepTimerSpinBox;
     QPushButton *m_categoriesButton;
     QPushButton *m_proxyButton;
     QDialogButtonBox *m_buttonBox;

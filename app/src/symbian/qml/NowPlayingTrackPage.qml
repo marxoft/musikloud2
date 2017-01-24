@@ -71,7 +71,7 @@ MyPage {
                 width: column.height
                 height: column.height
                 source: player.metaData.thumbnailUrl
-                placeholderSource: "images/track.jpg"
+                placeholderSource: "images/track.svg"
                 enabled: false
             }
 

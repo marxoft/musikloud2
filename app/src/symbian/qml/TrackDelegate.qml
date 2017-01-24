@@ -32,7 +32,7 @@ MyListItem {
         z: 10
         width: height
         source: thumbnailUrl
-        placeholderSource: "images/track.jpg"
+        placeholderSource: "images/track.svg"
         onClicked: root.activated()
     }
     

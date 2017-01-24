@@ -46,14 +46,16 @@ NowPlayingWindow::NowPlayingWindow(StackedWindow *parent) :
     m_trackLabel(new QLabel(this)),
     m_titleLabel(new QLabel(this)),
     m_artistLabel(new QLabel(this)),
-    m_positionLabel(new QLabel("--:--", this)),
-    m_durationLabel(new QLabel("--:2--", this)),
+    m_positionLabel(new QLabel(this)),
+    m_durationLabel(new QLabel(this)),
     m_positionSlider(new QSlider(Qt::Horizontal, this)),
     m_bufferBar(new QProgressBar(this)),
     m_view(new QListView(this)),
+    m_contextMenu(new QMenu(this)),
+    m_downloadAction(new QAction(tr("Download"), this)),
+    m_removeAction(new QAction(tr("Delete from now playing"), this)),
     m_clearAction(new QAction(tr("Clear now playing"), this)),
     m_stopAfterCurrentAction(new QAction(tr("Stop after current track"), this)),
-    m_sleepTimerAction(new QAction(tr("Sleep timer"), this)),
     m_toolBar(new QWidget(this)),
     m_hbox(new QHBoxLayout(m_toolBar)),
     m_previousButton(new QToolButton(this)),
@@ -66,7 +68,6 @@ NowPlayingWindow::NowPlayingWindow(StackedWindow *parent) :
     
     menuBar()->addAction(m_clearAction);
     menuBar()->addAction(m_stopAfterCurrentAction);
-    menuBar()->addAction(m_sleepTimerAction);
     
     m_thumbnail->setFallbackSource(QUrl::fromLocalFile("/usr/share/icons/hicolor/295x295/hildon/mediaplayer_default_album.png"));
     m_thumbnail->setGeometry(30, 30, 295, 295);
@@ -92,14 +93,14 @@ NowPlayingWindow::NowPlayingWindow(StackedWindow *parent) :
     m_view->setModel(AudioPlayer::instance()->queue());
     m_view->setItemDelegate(new NowPlayingDelegate(m_view));
     m_view->setContextMenuPolicy(Qt::CustomContextMenu);
-    m_view->setUniformItemSizes(true);
     m_view->hide();
+    
+    m_contextMenu->addAction(m_downloadAction);
+    m_contextMenu->addAction(m_removeAction);
+    m_contextMenu->addAction(m_clearAction);
     
     m_stopAfterCurrentAction->setCheckable(true);
     m_stopAfterCurrentAction->setChecked(AudioPlayer::instance()->stopAfterCurrentTrack());
-    
-    m_sleepTimerAction->setCheckable(true);
-    m_sleepTimerAction->setChecked(AudioPlayer::instance()->sleepTimerEnabled());
         
     m_previousButton->setFixedSize(64, 64);
     m_previousButton->setIconSize(QSize(64, 64));
@@ -159,10 +160,11 @@ NowPlayingWindow::NowPlayingWindow(StackedWindow *parent) :
     connect(m_positionSlider, SIGNAL(valueChanged(int)), this, SLOT(onSliderValueChanged(int)));
     connect(m_view, SIGNAL(activated(QModelIndex)), this, SLOT(setCurrentIndex(QModelIndex)));
     connect(m_view, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(showContextMenu(QPoint)));
+    connect(m_downloadAction, SIGNAL(triggered()), this, SLOT(downloadTrack()));
+    connect(m_removeAction, SIGNAL(triggered()), this, SLOT(removeTrack()));
     connect(m_clearAction, SIGNAL(triggered()), AudioPlayer::instance(), SLOT(clearQueue()));
     connect(m_stopAfterCurrentAction, SIGNAL(triggered(bool)),
             AudioPlayer::instance(), SLOT(setStopAfterCurrentTrack(bool)));
-    connect(m_sleepTimerAction, SIGNAL(triggered(bool)), AudioPlayer::instance(),SLOT(setSleepTimerEnabled(bool)));
     connect(m_previousButton, SIGNAL(clicked()), AudioPlayer::instance(), SLOT(previous()));
     connect(m_playButton, SIGNAL(clicked(bool)), AudioPlayer::instance(), SLOT(setPlaying(bool)));
     connect(m_nextButton, SIGNAL(clicked()), AudioPlayer::instance(), SLOT(next()));
@@ -181,8 +183,6 @@ void NowPlayingWindow::connectPlaybackSignals() {
     connect(AudioPlayer::instance(), SIGNAL(positionChanged(qint64)), this, SLOT(onPositionChanged(qint64)));
     connect(AudioPlayer::instance(), SIGNAL(metaDataChanged()), this, SLOT(onMetaDataChanged()));
     connect(AudioPlayer::instance(), SIGNAL(seekableChanged(bool)), this, SLOT(onSeekableChanged(bool)));
-    connect(AudioPlayer::instance(), SIGNAL(sleepTimerRemainingChanged(int)),
-            this, SLOT(onSleepTimerRemainingChanged(int)));
     connect(AudioPlayer::instance(), SIGNAL(statusChanged(AudioPlayer::Status)),
             this, SLOT(onStatusChanged(AudioPlayer::Status)));
     
@@ -191,7 +191,6 @@ void NowPlayingWindow::connectPlaybackSignals() {
     onMetaDataChanged();
     onPositionChanged(AudioPlayer::instance()->position());
     onSeekableChanged(AudioPlayer::instance()->isSeekable());
-    onSleepTimerRemainingChanged(AudioPlayer::instance()->sleepTimerRemaining());
     onStatusChanged(AudioPlayer::instance()->status());
 }
 
@@ -202,13 +201,12 @@ void NowPlayingWindow::disconnectPlaybackSignals() {
     disconnect(AudioPlayer::instance(), SIGNAL(metaDataChanged()), this, SLOT(onMetaDataChanged()));
     disconnect(AudioPlayer::instance(), SIGNAL(positionChanged(qint64)), this, SLOT(onPositionChanged(qint64)));
     disconnect(AudioPlayer::instance(), SIGNAL(seekableChanged(bool)), this, SLOT(onSeekableChanged(bool)));
-    disconnect(AudioPlayer::instance(), SIGNAL(sleepTimerRemainingChanged(int)),
-               this, SLOT(onSleepTimerRemainingChanged(int)));
     disconnect(AudioPlayer::instance(), SIGNAL(statusChanged(AudioPlayer::Status)),
                this, SLOT(onStatusChanged(AudioPlayer::Status)));
 }
 
-void NowPlayingWindow::downloadTrack(const QModelIndex &index) {
+void NowPlayingWindow::downloadTrack() {
+    const QModelIndex index = m_view->currentIndex();
     const QString trackId = index.data(TrackModel::IdRole).toString();
     const QString title = index.data(TrackModel::TitleRole).toString();
     const QString service = index.data(TrackModel::ServiceRole).toString();
@@ -236,12 +234,12 @@ void NowPlayingWindow::downloadTrack(const QModelIndex &index) {
     }
 }
 
-void NowPlayingWindow::removeTrack(const QModelIndex &index) {
-    AudioPlayer::instance()->removeTrack(index.row());
+void NowPlayingWindow::removeTrack() {
+    AudioPlayer::instance()->removeTrack(m_view->currentIndex().row());
 }
 
 void NowPlayingWindow::setCurrentIndex(const QModelIndex &index) {
-    AudioPlayer::instance()->setCurrentIndex(index.row());
+    AudioPlayer::instance()->setCurrentIndex(index.row(), AudioPlayer::instance()->isPlaying());
 }
 
 void NowPlayingWindow::setPosition() {
@@ -249,37 +247,9 @@ void NowPlayingWindow::setPosition() {
 }
 
 void NowPlayingWindow::showContextMenu(const QPoint &pos) {
-    const QModelIndex index = m_view->currentIndex();
-    
-    if (!index.isValid()) {
-        return;
-    }
-    
-    if (index.data(TrackModel::DownloadableRole).toBool()) {
-        QMenu menu(this);
-        QAction *downloadAction = menu.addAction(tr("Download"));
-        QAction *removeAction = menu.addAction(tr("Remove"));
-        QAction *action = menu.exec(pos);
-        
-        if (!action) {
-            return;
-        }
-        
-        if (action == downloadAction) {
-            downloadTrack(index);
-        }
-        else if (action == removeAction) {
-            removeTrack(index);
-        }
-    }
-    else {
-        QMenu menu(this);
-        QAction *removeAction = menu.addAction(tr("Remove"));
-        QAction *action = menu.exec(pos);
-        
-        if (action == removeAction) {
-            removeTrack(index);
-        }
+    if (m_view->currentIndex().isValid()) {
+        m_downloadAction->setEnabled(m_view->currentIndex().data(TrackModel::DownloadableRole).toBool());
+        m_contextMenu->popup(pos, m_downloadAction);
     }
 }
 
@@ -322,7 +292,7 @@ void NowPlayingWindow::onCurrentIndexChanged(int index) {
 }
 
 void NowPlayingWindow::onDurationChanged(qint64 duration) {
-    m_positionSlider->setMaximum(qMax(1, int(duration)));
+    m_positionSlider->setMaximum(int(duration));
     m_durationLabel->setText(AudioPlayerMetaData::durationString());
 }
 
@@ -365,16 +335,6 @@ void NowPlayingWindow::onSeekableChanged(bool isSeekable) {
         m_playButton->setStyleSheet(TOOL_BUTTON_STYLE_SHEET.arg(QString("/etc/hildon/theme/mediaplayer/Play.png"))
                                                            .arg(QString("/etc/hildon/theme/mediaplayer/Play.png"))
                                                            .arg(QString("/etc/hildon/theme/mediaplayer/Stop.png")));
-    }
-}
-
-void NowPlayingWindow::onSleepTimerRemainingChanged(int remaining) {
-    if (remaining > 0) {
-        m_sleepTimerAction->setText(tr("Sleep timer (%1)").arg(AudioPlayer::instance()->sleepTimerRemainingString()));
-    }
-    else {
-        m_sleepTimerAction->setChecked(false);
-        m_sleepTimerAction->setText(tr("Sleep timer"));
     }
 }
 

@@ -70,19 +70,25 @@ SoundCloudTrackWindow::SoundCloudTrackWindow(const QString &id, StackedWindow *p
     m_descriptionLabel(new TextBrowser(this)),
     m_dateLabel(new QLabel(this)),
     m_artistLabel(new QLabel(this)),
-    m_noResultsLabel(new QLabel(QString("<p align='center'; style='font-size: 40px; color: %1'>%2</p>")
-                                .arg(palette().color(QPalette::Mid).name()).arg(tr("No results")), this)),
+    m_noTracksLabel(new QLabel(QString("<p align='center'; style='font-size: 40px; color: %1'>%2</p>")
+                                      .arg(palette().color(QPalette::Mid).name()).arg(tr("No tracks found")), this)),
+    m_noCommentsLabel(0),
     m_reloadAction(new QAction(tr("Reload"), this)),
     m_queueAction(new QAction(tr("Queue"), this)),
     m_downloadAction(new QAction(tr("Download"), this)),
     m_shareAction(new QAction(tr("Copy URL"), this)),
     m_favouriteAction(0),
-    m_commentAction(0)
+    m_commentAction(0),
+    m_contextMenu(new QMenu(this)),
+    m_relatedQueueAction(new QAction(tr("Queue"), this)),
+    m_relatedDownloadAction(new QAction(tr("Download"), this)),
+    m_relatedShareAction(new QAction(tr("Copy URL"), this)),
+    m_relatedFavouriteAction(0)
 {
     loadBaseUi();
     connect(m_track, SIGNAL(statusChanged(QSoundCloud::ResourcesRequest::Status)),
             this, SLOT(onTrackStatusChanged(QSoundCloud::ResourcesRequest::Status)));
-    
+            
     m_track->loadTrack(id);
 }
 
@@ -101,6 +107,7 @@ SoundCloudTrackWindow::SoundCloudTrackWindow(SoundCloudTrack *track, StackedWind
     m_relatedDelegate(new TrackDelegate(m_cache, SoundCloudTrackModel::ArtistRole, SoundCloudTrackModel::DateRole,
                                         SoundCloudTrackModel::DurationStringRole, SoundCloudTrackModel::ThumbnailUrlRole,
                                         SoundCloudTrackModel::TitleRole, this)),
+    m_commentDelegate(0),
     m_scrollArea(new QScrollArea(this)),
     m_tabBar(new QTabBar(this)),
     m_stack(new QStackedWidget(this)),
@@ -108,21 +115,27 @@ SoundCloudTrackWindow::SoundCloudTrackWindow(SoundCloudTrack *track, StackedWind
     m_descriptionLabel(new TextBrowser(this)),
     m_dateLabel(new QLabel(this)),
     m_artistLabel(new QLabel(this)),
-    m_noResultsLabel(new QLabel(QString("<p align='center'; style='font-size: 40px; color: %1'>%2</p>")
-                                .arg(palette().color(QPalette::Mid).name()).arg(tr("No results")), this)),
+    m_noTracksLabel(new QLabel(QString("<p align='center'; style='font-size: 40px; color: %1'>%2</p>")
+                                      .arg(palette().color(QPalette::Mid).name()).arg(tr("No tracks found")), this)),
+    m_noCommentsLabel(0),
     m_reloadAction(new QAction(tr("Reload"), this)),
     m_queueAction(new QAction(tr("Queue"), this)),
     m_downloadAction(new QAction(tr("Download"), this)),
     m_shareAction(new QAction(tr("Copy URL"), this)),
     m_favouriteAction(0),
-    m_commentAction(0)
+    m_commentAction(0),
+    m_contextMenu(new QMenu(this)),
+    m_relatedQueueAction(new QAction(tr("Queue"), this)),
+    m_relatedDownloadAction(new QAction(tr("Download"), this)),
+    m_relatedShareAction(new QAction(tr("Copy URL"), this)),
+    m_relatedFavouriteAction(0)
 {
     loadBaseUi();
     loadTrackUi();
     getRelatedTracks();
     connect(m_artist, SIGNAL(statusChanged(QSoundCloud::ResourcesRequest::Status)), this,
             SLOT(onArtistStatusChanged(QSoundCloud::ResourcesRequest::Status)));
-    
+            
     m_artist->loadArtist(track->artistId());
 }
 
@@ -150,6 +163,10 @@ void SoundCloudTrackWindow::loadBaseUi() {
 
     m_reloadAction->setEnabled(false);
     
+    m_contextMenu->addAction(m_relatedQueueAction);
+    m_contextMenu->addAction(m_relatedDownloadAction);
+    m_contextMenu->addAction(m_relatedShareAction);
+    
     QWidget *scrollWidget = new QWidget(m_scrollArea);
     QGridLayout *grid = new QGridLayout(scrollWidget);
     grid->addWidget(m_thumbnail, 0, 0, 1, 2, Qt::AlignLeft);
@@ -172,7 +189,7 @@ void SoundCloudTrackWindow::loadBaseUi() {
     m_tabBar->setStyleSheet("QTabBar::tab { height: 40px; }");
     
     m_stack->addWidget(m_relatedView);
-    m_stack->addWidget(m_noResultsLabel);
+    m_stack->addWidget(m_noTracksLabel);
     
     m_layout = new QGridLayout(centralWidget());
     m_layout->addWidget(m_scrollArea, 0, 0, 2, 1);
@@ -202,13 +219,19 @@ void SoundCloudTrackWindow::loadBaseUi() {
     connect(m_queueAction, SIGNAL(triggered()), this, SLOT(queueTrack()));
     connect(m_downloadAction, SIGNAL(triggered()), this, SLOT(downloadTrack()));
     connect(m_shareAction, SIGNAL(triggered()), this, SLOT(shareTrack()));
+    connect(m_relatedQueueAction, SIGNAL(triggered()), this, SLOT(queueRelatedTrack()));
+    connect(m_relatedDownloadAction, SIGNAL(triggered()), this, SLOT(downloadRelatedTrack()));
+    connect(m_relatedShareAction, SIGNAL(triggered()), this, SLOT(shareRelatedTrack()));
     
     if (!SoundCloud::userId().isEmpty()) {
         m_favouriteAction = new QAction(tr("Favourite"), this);
+        m_relatedFavouriteAction = new QAction(this);
         m_commentAction = new QAction(tr("Add comment"), this);
         menuBar()->insertAction(m_nowPlayingAction, m_favouriteAction);
         menuBar()->insertAction(m_nowPlayingAction, m_commentAction);
+        m_contextMenu->addAction(m_relatedFavouriteAction);
         connect(m_favouriteAction, SIGNAL(triggered()), this, SLOT(setTrackFavourite()));
+        connect(m_relatedFavouriteAction, SIGNAL(triggered()), this, SLOT(setRelatedTrackFavourite()));
         connect(m_commentAction, SIGNAL(triggered()), this, SLOT(addComment()));
     }
 }
@@ -301,11 +324,13 @@ void SoundCloudTrackWindow::shareTrack() {
     QMaemo5InformationBox::information(this, tr("URL copied to clipboard"));
 }
 
-void SoundCloudTrackWindow::downloadRelatedTrack(const QModelIndex &index) {
+void SoundCloudTrackWindow::downloadRelatedTrack() {
     if (isBusy()) {
         return;
     }
-        
+    
+    const QModelIndex index = m_relatedView->currentIndex();
+    
     if (index.isValid()) {
         const QString id = index.data(SoundCloudTrackModel::IdRole).toString();
         const QString title = index.data(SoundCloudTrackModel::TitleRole).toString();
@@ -333,23 +358,23 @@ void SoundCloudTrackWindow::playRelatedTrack(const QModelIndex &index) {
     }
 }
 
-void SoundCloudTrackWindow::queueRelatedTrack(const QModelIndex &index) {
+void SoundCloudTrackWindow::queueRelatedTrack() {
     if (isBusy()) {
         return;
     }
     
-    if (SoundCloudTrack *track = m_relatedModel->get(index.row())) {
+    if (SoundCloudTrack *track = m_relatedModel->get(m_relatedView->currentIndex().row())) {
         AudioPlayer::instance()->addTrack(track);
         QMaemo5InformationBox::information(this, tr("'%1' added to playback queue").arg(track->title()));
     }
 }   
 
-void SoundCloudTrackWindow::setRelatedTrackFavourite(const QModelIndex &index) {
+void SoundCloudTrackWindow::setRelatedTrackFavourite() {
     if (isBusy()) {
         return;
     }
     
-    if (SoundCloudTrack *track = m_relatedModel->get(index.row())) {
+    if (SoundCloudTrack *track = m_relatedModel->get(m_relatedView->currentIndex().row())) {
         connect(track, SIGNAL(statusChanged(QSoundCloud::ResourcesRequest::Status)),
                 this, SLOT(onTrackUpdateStatusChanged(QSoundCloud::ResourcesRequest::Status)));
                 
@@ -362,8 +387,8 @@ void SoundCloudTrackWindow::setRelatedTrackFavourite(const QModelIndex &index) {
     }
 }
 
-void SoundCloudTrackWindow::shareRelatedTrack(const QModelIndex &index) {
-    if (const SoundCloudTrack *track = m_relatedModel->get(index.row())) {
+void SoundCloudTrackWindow::shareRelatedTrack() {
+    if (const SoundCloudTrack *track = m_relatedModel->get(m_relatedView->currentIndex().row())) {
         Clipboard::instance()->setText(track->url().toString());
         QMaemo5InformationBox::information(this, tr("URL copied to clipboard"));
     }
@@ -392,62 +417,13 @@ void SoundCloudTrackWindow::reload() {
 }
 
 void SoundCloudTrackWindow::showContextMenu(const QPoint &pos) {
-    if (isBusy()) {
-        return;
-    }
-    
-    const QModelIndex index = m_relatedView->currentIndex();
-    
-    if (!index.isValid()) {
-        return;
-    }
-    
-    if (!SoundCloud::userId().isEmpty()) {
-        QMenu menu(this);
-        QAction *queueAction = menu.addAction(tr("Queue"));
-        QAction *downloadAction = menu.addAction(tr("Download"));
-        QAction *shareAction = menu.addAction(tr("Copy URL"));
-        QAction *favouriteAction = menu.addAction(index.data(SoundCloudTrackModel::FavouriteRole).toBool()
-                                                  ? tr("Unfavourite") : tr("Favourite"));
-        QAction *action = menu.exec(pos);
-        
-        if (!action) {
-            return;
+    if ((!isBusy()) && (m_relatedView->currentIndex().isValid())) {
+        if (m_relatedFavouriteAction) {
+            m_relatedFavouriteAction->setText(m_relatedView->currentIndex().data(SoundCloudTrackModel::FavouriteRole).toBool()
+                                              ? tr("Unfavourite") : tr("Favourite"));
         }
         
-        if (action == queueAction) {
-            queueRelatedTrack(index);
-        }
-        else if (action == downloadAction) {
-            downloadRelatedTrack(index);
-        }
-        else if (action == shareAction) {
-            shareRelatedTrack(index);
-        }
-        else if (action == favouriteAction) {
-            setRelatedTrackFavourite(index);
-        }
-    }
-    else {
-        QMenu menu(this);
-        QAction *queueAction = menu.addAction(tr("Queue"));
-        QAction *downloadAction = menu.addAction(tr("Download"));
-        QAction *shareAction = menu.addAction(tr("Copy URL"));
-        QAction *action = menu.exec(pos);
-        
-        if (!action) {
-            return;
-        }
-        
-        if (action == queueAction) {
-            queueRelatedTrack(index);
-        }
-        else if (action == downloadAction) {
-            downloadRelatedTrack(index);
-        }
-        else if (action == shareAction) {
-            shareRelatedTrack(index);
-        }
+        m_contextMenu->popup(pos, m_relatedQueueAction);
     }
 }
 
@@ -481,7 +457,10 @@ void SoundCloudTrackWindow::showComments() {
         m_commentView->setUniformItemSizes(false);
         m_commentView->setModel(m_commentModel);
         m_commentView->setItemDelegate(m_commentDelegate);
+        m_noCommentsLabel = new QLabel(QString("<p align='center'; style='font-size: 40px; color: %1'>%2</p>")
+                                      .arg(palette().color(QPalette::Mid).name()).arg(tr("No comments found")), this);
         m_stack->addWidget(m_commentView);
+        m_stack->addWidget(m_noCommentsLabel);
         
         connect(m_commentDelegate, SIGNAL(thumbnailClicked(QModelIndex)), this, SLOT(showArtist(QModelIndex)));
         connect(m_commentModel, SIGNAL(statusChanged(QSoundCloud::ResourcesRequest::Status)),
@@ -493,7 +472,7 @@ void SoundCloudTrackWindow::showComments() {
     }
     
     if ((m_commentModel->rowCount() == 0) && (m_commentModel->status() != QSoundCloud::ResourcesRequest::Loading)) {
-        m_stack->setCurrentWidget(m_noResultsLabel);
+        m_stack->setCurrentWidget(m_noCommentsLabel);
     }
     else {
         m_stack->setCurrentWidget(m_commentView);
@@ -502,7 +481,7 @@ void SoundCloudTrackWindow::showComments() {
 
 void SoundCloudTrackWindow::showRelatedTracks() {
     if ((m_relatedModel->rowCount() == 0) && (m_relatedModel->status() != QSoundCloud::ResourcesRequest::Loading)) {
-        m_stack->setCurrentWidget(m_noResultsLabel);
+        m_stack->setCurrentWidget(m_noTracksLabel);
     }
     else {
         m_stack->setCurrentWidget(m_relatedView);

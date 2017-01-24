@@ -39,7 +39,7 @@ PluginDownloadDialog::PluginDownloadDialog(const QString &service, QWidget *pare
     m_buttonBox(new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Vertical, this)),
     m_layout(new QHBoxLayout(this))
 {
-    setWindowTitle(tr("Download"));
+    setWindowTitle(tr("Download track"));
     setMinimumHeight(360);
     
     m_streamModel->setService(service);
@@ -105,14 +105,12 @@ void PluginDownloadDialog::list(const QString &trackId, bool listStreams) {
     else {
         m_streamModel->clear();
         m_streamModel->append(tr("Default format"), QVariant());
-        m_buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
     }
 }
 
 void PluginDownloadDialog::onStreamModelStatusChanged(ResourcesRequest::Status status) {
     switch (status) {
     case ResourcesRequest::Loading:
-        m_buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
         showProgressIndicator();
         return;
     case ResourcesRequest::Ready:

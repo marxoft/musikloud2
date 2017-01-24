@@ -104,7 +104,7 @@ MyPage {
                 width: column.height
                 height: column.height
                 source: track.thumbnailUrl
-                placeholderSource: "../images/track.jpg"
+                placeholderSource: "../images/track.svg"
                 onClicked: media.playTrack(track)
             }
             

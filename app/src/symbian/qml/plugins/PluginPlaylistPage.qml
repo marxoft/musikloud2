@@ -137,7 +137,7 @@ MyPage {
                 width: column.height
                 height: column.height
                 source: playlist.thumbnailUrl
-                placeholderSource: "../images/track.jpg"
+                placeholderSource: "../images/playlist.svg"
                 enabled: trackModel.count > 0
                 onClicked: {
                     var tracks = [];

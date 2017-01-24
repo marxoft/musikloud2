@@ -30,7 +30,7 @@ MyListItem {
         }
         width: height
         source: thumbnailUrl
-        placeholderSource: "images/artist.jpg"
+        placeholderSource: "images/artist.svg"
         enabled: false
     }
     

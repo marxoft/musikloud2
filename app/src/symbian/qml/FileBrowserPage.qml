@@ -46,7 +46,7 @@ MyPage {
         }
         
         MyToolButton {
-            iconSource: "images/yes.png"
+            iconSource: "images/ok.svg"
             toolTip: qsTr("Submit")
             enabled: folderText.text !== ""
             onClicked: {
@@ -121,7 +121,7 @@ MyPage {
                     verticalCenter: paddingItem.verticalCenter
                 }
 
-                source: "images/folder.png"
+                source: folderListModel.isFolder(index) ? "images/folder.svg" : "images/document.svg"
             }
 
             MyListItemText {

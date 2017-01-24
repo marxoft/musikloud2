@@ -30,7 +30,7 @@ PluginCategoriesWindow::PluginCategoriesWindow(StackedWindow *parent) :
     m_view(new ListView(this)),
     m_reloadAction(new QAction(tr("Reload"), this)),
     m_label(new QLabel(QString("<p align='center'; style='font-size: 40px; color: %1'>%2</p>")
-                              .arg(palette().color(QPalette::Mid).name()).arg(tr("No results")), this))
+                              .arg(palette().color(QPalette::Mid).name()).arg(tr("No categories found")), this))
 {
     setWindowTitle(tr("Categories"));
     setCentralWidget(new QWidget);

@@ -40,7 +40,7 @@ SoundCloudDownloadDialog::SoundCloudDownloadDialog(QWidget *parent) :
     m_buttonBox(new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Vertical, this)),
     m_layout(new QHBoxLayout(this))
 {
-    setWindowTitle(tr("Download"));
+    setWindowTitle(tr("Download track"));
     setMinimumHeight(360);
     
     m_streamSelector->setModel(m_streamModel);
@@ -105,7 +105,6 @@ void SoundCloudDownloadDialog::get(const QString &trackId) {
 void SoundCloudDownloadDialog::onStreamModelStatusChanged(QSoundCloud::StreamsRequest::Status status) {
     switch (status) {
     case QSoundCloud::StreamsRequest::Loading:
-        m_buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
         showProgressIndicator();
         return;
     case QSoundCloud::StreamsRequest::Ready:

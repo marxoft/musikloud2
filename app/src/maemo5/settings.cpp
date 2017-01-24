@@ -418,20 +418,6 @@ void Settings::removeSearch(const QString &query) {
     setSearchHistory(searches);
 }
 
-int Settings::sleepTimerDuration() {
-    return qMax(1, value("Playback/sleepTimerDuration", 30).toInt());
-}
-
-void Settings::setSleepTimerDuration(int duration) {
-    if ((duration != sleepTimerDuration()) && (duration > 0)) {
-        setValue("Playback/sleepTimerDuration", duration);
-        
-        if (self) {
-            emit self->sleepTimerDurationChanged(duration);
-        }
-    }
-}
-
 bool Settings::startTransfersAutomatically() {
     return value("Transfers/startTransfersAutomatically", true).toBool();
 }

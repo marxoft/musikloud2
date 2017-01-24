@@ -27,6 +27,8 @@ class QSlider;
 class QProgressBar;
 class QListView;
 class QLabel;
+class QAction;
+class QMenu;
 class QHBoxLayout;
 class QGridLayout;
 
@@ -38,8 +40,8 @@ public:
     explicit NowPlayingWindow(StackedWindow *parent = 0);
     
 private Q_SLOTS:
-    void downloadTrack(const QModelIndex &index);
-    void removeTrack(const QModelIndex &index);
+    void downloadTrack();
+    void removeTrack();
     
     void setCurrentIndex(const QModelIndex &index);
     
@@ -56,7 +58,6 @@ private Q_SLOTS:
     void onMetaDataChanged();
     void onPositionChanged(qint64 position);
     void onSeekableChanged(bool isSeekable);
-    void onSleepTimerRemainingChanged(int remaining);
     void onSliderValueChanged(int value);
     void onStatusChanged(AudioPlayer::Status status);
     void onScreenLockStateChanged(bool isLocked);
@@ -76,9 +77,11 @@ private:
     QSlider *m_positionSlider;
     QProgressBar *m_bufferBar;
     QListView *m_view;
+    QMenu *m_contextMenu;
+    QAction *m_downloadAction;
+    QAction *m_removeAction;
     QAction *m_clearAction;
     QAction *m_stopAfterCurrentAction;
-    QAction *m_sleepTimerAction;
     QWidget *m_toolBar;
     QHBoxLayout *m_hbox;
     QToolButton *m_previousButton;

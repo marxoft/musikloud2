@@ -105,7 +105,7 @@ MyPage {
                 width: platformStyle.graphicSizeLarge
                 height: platformStyle.graphicSizeLarge
                 source: artist.thumbnailUrl
-                placeholderSource: "../images/artist.jpg"
+                placeholderSource: "../images/artist.svg"
             }
             
             Label {

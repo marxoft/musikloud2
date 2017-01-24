@@ -63,7 +63,3 @@ void NowPlayingDelegate::paint(QPainter *painter, const QStyleOptionViewItem &op
                       QFontMetrics(font).elidedText(artist, Qt::ElideRight, textRect.width()));
     painter->restore();
 }
-
-QSize NowPlayingDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &) const {
-    return QSize(option.rect.width(), 70);
-}

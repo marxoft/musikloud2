@@ -34,7 +34,7 @@ MyPage {
         MyToolButton {
             id: acceptButton
 
-            iconSource: "images/yes.png"
+            iconSource: "images/ok.svg"
             toolTip: qsTr("Submit")
             onClicked: root.accepted()
         }

@@ -56,8 +56,6 @@ class Settings : public QObject
     Q_PROPERTY(bool restorePlaybackQueueOnStartup READ restorePlaybackQueueOnStartup
                WRITE setRestorePlaybackQueueOnStartup NOTIFY restorePlaybackQueueOnStartupChanged)
     Q_PROPERTY(QStringList searchHistory READ searchHistory WRITE setSearchHistory NOTIFY searchHistoryChanged)
-    Q_PROPERTY(int sleepTimerDuration READ sleepTimerDuration WRITE setSleepTimerDuration
-               NOTIFY sleepTimerDurationChanged)
     Q_PROPERTY(bool startTransfersAutomatically READ startTransfersAutomatically WRITE setStartTransfersAutomatically
                NOTIFY startTransfersAutomaticallyChanged)
     Q_PROPERTY(QByteArray transfersHeaderViewState READ transfersHeaderViewState WRITE setTransfersHeaderViewState)
@@ -104,8 +102,6 @@ public:
             
     static QStringList searchHistory();
     
-    static int sleepTimerDuration();
-    
     static bool startTransfersAutomatically();
     
     static QByteArray transfersHeaderViewState();
@@ -150,8 +146,6 @@ public Q_SLOTS:
     static void addSearch(const QString &query);
     static void removeSearch(const QString &query);
     
-    static void setSleepTimerDuration(int duration);
-    
     static void setStartTransfersAutomatically(bool enabled);
     
     static void setTransfersHeaderViewState(const QByteArray &state);
@@ -175,7 +169,6 @@ Q_SIGNALS:
     void playbackFormatsChanged();
     void restorePlaybackQueueOnStartupChanged(bool enabled);
     void searchHistoryChanged();
-    void sleepTimerDurationChanged(int duration);
     void startTransfersAutomaticallyChanged(bool enabled);
 
 private:

@@ -46,7 +46,7 @@ MyListItem {
 
             width: height
             height: titleLabel.height
-            source: transferType === Transfer.Upload ? "images/upload.png" : "images/download.png"
+            source: transferType === Transfer.Upload ? "images/upload.svg" : "images/download.svg"
             smooth: true
         }
         

@@ -45,8 +45,13 @@ SoundCloudTracksWindow::SoundCloudTracksWindow(StackedWindow *parent) :
                                  SoundCloudTrackModel::DurationStringRole, SoundCloudTrackModel::ThumbnailUrlRole,
                                  SoundCloudTrackModel::TitleRole, this)),
     m_reloadAction(new QAction(tr("Reload"), this)),
+    m_contextMenu(new QMenu(this)),
+    m_queueAction(new QAction(tr("Queue"), this)),
+    m_downloadAction(new QAction(tr("Download"), this)),
+    m_shareAction(new QAction(tr("Copy URL"), this)),
+    m_favouriteAction(0),
     m_label(new QLabel(QString("<p align='center'; style='font-size: 40px; color: %1'>%2</p>")
-                              .arg(palette().color(QPalette::Mid).name()).arg(tr("No results")), this))
+                              .arg(palette().color(QPalette::Mid).name()).arg(tr("No tracks found")), this))
 {
     setWindowTitle(tr("Tracks"));
     setCentralWidget(new QWidget);
@@ -55,7 +60,11 @@ SoundCloudTracksWindow::SoundCloudTracksWindow(StackedWindow *parent) :
     m_view->setItemDelegate(m_delegate);
     m_view->setContextMenuPolicy(Qt::CustomContextMenu);
 
-    m_reloadAction->setEnabled(false); 
+    m_reloadAction->setEnabled(false);
+    
+    m_contextMenu->addAction(m_queueAction);
+    m_contextMenu->addAction(m_downloadAction);  
+    m_contextMenu->addAction(m_shareAction);  
     
     m_label->hide();
     
@@ -74,6 +83,15 @@ SoundCloudTracksWindow::SoundCloudTracksWindow(StackedWindow *parent) :
     connect(m_view, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(showContextMenu(QPoint)));
     connect(m_delegate, SIGNAL(thumbnailClicked(QModelIndex)), this, SLOT(playTrack(QModelIndex)));
     connect(m_reloadAction, SIGNAL(triggered()), m_model, SLOT(reload()));
+    connect(m_queueAction, SIGNAL(triggered()), this, SLOT(queueTrack()));
+    connect(m_downloadAction, SIGNAL(triggered()), this, SLOT(downloadTrack()));
+    connect(m_shareAction, SIGNAL(triggered()), this, SLOT(shareTrack()));
+    
+    if (!SoundCloud::userId().isEmpty()) {
+        m_favouriteAction = new QAction(this);
+        m_contextMenu->addAction(m_favouriteAction);
+        connect(m_favouriteAction, SIGNAL(triggered()), this, SLOT(setTrackFavourite()));
+    }
 }
 
 SoundCloudTracksWindow::~SoundCloudTracksWindow() {
@@ -85,11 +103,13 @@ void SoundCloudTracksWindow::get(const QString &resourcePath, const QVariantMap 
     m_model->get(resourcePath, filters);
 }
 
-void SoundCloudTracksWindow::downloadTrack(const QModelIndex &index) {
+void SoundCloudTracksWindow::downloadTrack() {
     if (isBusy()) {
         return;
     }
-        
+    
+    const QModelIndex index = m_view->currentIndex();
+    
     if (index.isValid()) {
         const QString id = index.data(SoundCloudTrackModel::IdRole).toString();
         const QString title = index.data(SoundCloudTrackModel::TitleRole).toString();
@@ -117,23 +137,23 @@ void SoundCloudTracksWindow::playTrack(const QModelIndex &index) {
     }
 }
 
-void SoundCloudTracksWindow::queueTrack(const QModelIndex &index) {
+void SoundCloudTracksWindow::queueTrack() {
     if (isBusy()) {
         return;
     }
     
-    if (SoundCloudTrack *track = m_model->get(index.row())) {
+    if (SoundCloudTrack *track = m_model->get(m_view->currentIndex().row())) {
         AudioPlayer::instance()->addTrack(track);
         QMaemo5InformationBox::information(this, tr("'%1' added to playback queue").arg(track->title()));
     }
 }
 
-void SoundCloudTracksWindow::setTrackFavourite(const QModelIndex &index) {
+void SoundCloudTracksWindow::setTrackFavourite() {
     if (isBusy()) {
         return;
     }
     
-    if (SoundCloudTrack *track = m_model->get(index.row())) {
+    if (SoundCloudTrack *track = m_model->get(m_view->currentIndex().row())) {
         connect(track, SIGNAL(statusChanged(QSoundCloud::ResourcesRequest::Status)),
                 this, SLOT(onTrackUpdateStatusChanged(QSoundCloud::ResourcesRequest::Status)));
         
@@ -146,8 +166,8 @@ void SoundCloudTracksWindow::setTrackFavourite(const QModelIndex &index) {
     }
 }
 
-void SoundCloudTracksWindow::shareTrack(const QModelIndex &index) {
-    if (const SoundCloudTrack *track = m_model->get(index.row())) {
+void SoundCloudTracksWindow::shareTrack() {
+    if (const SoundCloudTrack *track = m_model->get(m_view->currentIndex().row())) {
         Clipboard::instance()->setText(track->url().toString());
         QMaemo5InformationBox::information(this, tr("URL copied to clipboard"));
     }
@@ -165,62 +185,13 @@ void SoundCloudTracksWindow::showTrack(const QModelIndex &index) {
 }
 
 void SoundCloudTracksWindow::showContextMenu(const QPoint &pos) {
-    if (isBusy()) {
-        return;
-    }
-    
-    const QModelIndex index = m_view->currentIndex();
-    
-    if (!index.isValid()) {
-        return;
-    }
-    
-    if (!SoundCloud::userId().isEmpty()) {
-        QMenu menu(this);
-        QAction *queueAction = menu.addAction(tr("Queue"));
-        QAction *downloadAction = menu.addAction(tr("Download"));
-        QAction *shareAction = menu.addAction(tr("Copy URL"));
-        QAction *favouriteAction = menu.addAction(index.data(SoundCloudTrackModel::FavouriteRole).toBool()
-                                                  ? tr("Unfavourite") : tr("Favourite"));
-        QAction *action = menu.exec(pos);
-        
-        if (!action) {
-            return;
+    if ((!isBusy()) && (m_view->currentIndex().isValid())) {
+        if (m_favouriteAction) {
+            m_favouriteAction->setText(m_view->currentIndex().data(SoundCloudTrackModel::FavouriteRole).toBool()
+                                       ? tr("Unfavourite") : tr("Favourite"));
         }
         
-        if (action == queueAction) {
-            queueTrack(index);
-        }
-        else if (action == downloadAction) {
-            downloadTrack(index);
-        }
-        else if (action == shareAction) {
-            shareTrack(index);
-        }
-        else if (action == favouriteAction) {
-            setTrackFavourite(index);
-        }
-    }
-    else {
-        QMenu menu(this);
-        QAction *queueAction = menu.addAction(tr("Queue"));
-        QAction *downloadAction = menu.addAction(tr("Download"));
-        QAction *shareAction = menu.addAction(tr("Copy URL"));
-        QAction *action = menu.exec(pos);
-        
-        if (!action) {
-            return;
-        }
-        
-        if (action == queueAction) {
-            queueTrack(index);
-        }
-        else if (action == downloadAction) {
-            downloadTrack(index);
-        }
-        else if (action == shareAction) {
-            shareTrack(index);
-        }
+        m_contextMenu->popup(pos, m_queueAction);
     }
 }
 

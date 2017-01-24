@@ -60,9 +60,13 @@ PluginPlaylistWindow::PluginPlaylistWindow(const QString &service, const QString
     m_dateLabel(new QLabel(this)),
     m_artistLabel(new QLabel(this)),
     m_noTracksLabel(new QLabel(QString("<p align='center'; style='font-size: 40px; color: %1'>%2</p>")
-                                      .arg(palette().color(QPalette::Mid).name()).arg(tr("No results")), this)),
+                                      .arg(palette().color(QPalette::Mid).name()).arg(tr("No tracks found")), this)),
     m_reloadAction(new QAction(tr("Reload"), this)),
-    m_queuePlaylistAction(new QAction(tr("Queue"), this))
+    m_queuePlaylistAction(new QAction(tr("Queue"), this)),
+    m_contextMenu(new QMenu(this)),
+    m_queueAction(new QAction(tr("Queue"), this)),
+    m_downloadAction(new QAction(tr("Download"), this)),
+    m_shareAction(new QAction(tr("Copy URL"), this))
 {
     loadBaseUi();
     connect(m_playlist, SIGNAL(statusChanged(ResourcesRequest::Status)),
@@ -92,7 +96,11 @@ PluginPlaylistWindow::PluginPlaylistWindow(PluginPlaylist *playlist, StackedWind
     m_noTracksLabel(new QLabel(QString("<p align='center'; style='font-size: 40px; color: %1'>%2</p>")
                                       .arg(palette().color(QPalette::Mid).name()).arg(tr("No tracks found")), this)),
     m_reloadAction(new QAction(tr("Reload"), this)),
-    m_queuePlaylistAction(new QAction(tr("Queue"), this))
+    m_queuePlaylistAction(new QAction(tr("Queue"), this)),
+    m_contextMenu(new QMenu(this)),
+    m_queueAction(new QAction(tr("Queue"), this)),
+    m_downloadAction(new QAction(tr("Download"), this)),
+    m_shareAction(new QAction(tr("Copy URL"), this))
 {
     loadBaseUi();
     loadPlaylistUi();
@@ -134,6 +142,10 @@ void PluginPlaylistWindow::loadBaseUi() {
     
     m_reloadAction->setEnabled(false);
     
+    m_contextMenu->addAction(m_queueAction);
+    m_contextMenu->addAction(m_downloadAction);
+    m_contextMenu->addAction(m_shareAction);
+    
     QWidget *scrollWidget = new QWidget(m_scrollArea);
     QGridLayout *grid = new QGridLayout(scrollWidget);
     grid->addWidget(m_thumbnail, 0, 0, 1, 2, Qt::AlignLeft);
@@ -171,6 +183,9 @@ void PluginPlaylistWindow::loadBaseUi() {
     connect(m_reloadAction, SIGNAL(triggered()), m_model, SLOT(reload()));
     connect(m_queuePlaylistAction, SIGNAL(triggered()), this, SLOT(queuePlaylist()));
     connect(m_descriptionLabel, SIGNAL(anchorClicked(QUrl)), this, SLOT(showResource(QUrl)));
+    connect(m_queueAction, SIGNAL(triggered()), this, SLOT(queueTrack()));
+    connect(m_downloadAction, SIGNAL(triggered()), this, SLOT(downloadTrack()));
+    connect(m_shareAction, SIGNAL(triggered()), this, SLOT(shareTrack()));
 }
 
 void PluginPlaylistWindow::loadPlaylistUi() {
@@ -250,11 +265,13 @@ void PluginPlaylistWindow::queuePlaylist() {
     }
 }
 
-void PluginPlaylistWindow::downloadTrack(const QModelIndex &index) {
+void PluginPlaylistWindow::downloadTrack() {
     if (isBusy()) {
         return;
     }
-        
+    
+    const QModelIndex index = m_view->currentIndex();
+    
     if (index.isValid()) {
         const QString id = index.data(PluginTrackModel::IdRole).toString();
         const QString title = index.data(PluginTrackModel::TitleRole).toString();
@@ -283,19 +300,19 @@ void PluginPlaylistWindow::playTrack(const QModelIndex &index) {
     }
 }
 
-void PluginPlaylistWindow::queueTrack(const QModelIndex &index) {
+void PluginPlaylistWindow::queueTrack() {
     if (isBusy()) {
         return;
     }
     
-    if (PluginTrack *track = m_model->get(index.row())) {
+    if (PluginTrack *track = m_model->get(m_view->currentIndex().row())) {
         AudioPlayer::instance()->addTrack(track);
         QMaemo5InformationBox::information(this, tr("'%1' added to playback queue").arg(track->title()));
     }
 }
 
-void PluginPlaylistWindow::shareTrack(const QModelIndex &index) {
-    if (const PluginTrack *track = m_model->get(index.row())) {
+void PluginPlaylistWindow::shareTrack() {
+    if (const PluginTrack *track = m_model->get(m_view->currentIndex().row())) {
         Clipboard::instance()->setText(track->url().toString());
         QMaemo5InformationBox::information(this, tr("URL copied to clipboard"));
     }
@@ -322,53 +339,9 @@ void PluginPlaylistWindow::showArtist() {
 }
 
 void PluginPlaylistWindow::showContextMenu(const QPoint &pos) {
-    if (isBusy()) {
-        return;
-    }
-    
-    const QModelIndex index = m_view->currentIndex();
-    
-    if (!index.isValid()) {
-        return;
-    }
-    
-    if (index.data(PluginTrackModel::DownloadableRole).toBool()) {
-        QMenu menu(this);
-        QAction *queueAction = menu.addAction(tr("Queue"));
-        QAction *downloadAction = menu.addAction(tr("Download"));
-        QAction *shareAction = menu.addAction(tr("Copy URL"));
-        QAction *action = menu.exec(pos);
-        
-        if (!action) {
-            return;
-        }
-        
-        if (action == queueAction) {
-            queueTrack(index);
-        }
-        else if (action == downloadAction) {
-            downloadTrack(index);
-        }
-        else if (action == shareAction) {
-            shareTrack(index);
-        }
-    }
-    else {
-        QMenu menu(this);
-        QAction *queueAction = menu.addAction(tr("Queue"));
-        QAction *shareAction = menu.addAction(tr("Copy URL"));
-        QAction *action = menu.exec(pos);
-        
-        if (!action) {
-            return;
-        }
-        
-        if (action == queueAction) {
-            queueTrack(index);
-        }
-        else if (action == shareAction) {
-            shareTrack(index);
-        }
+    if ((!isBusy()) && (m_view->currentIndex().isValid())) {
+        m_downloadAction->setEnabled(m_model->data(m_view->currentIndex(), PluginTrackModel::DownloadableRole).toBool());
+        m_contextMenu->popup(pos, m_queueAction);
     }
 }
 

@@ -42,8 +42,12 @@ PluginTracksWindow::PluginTracksWindow(StackedWindow *parent) :
                                  PluginTrackModel::DurationStringRole, PluginTrackModel::ThumbnailUrlRole,
                                  PluginTrackModel::TitleRole, this)),
     m_reloadAction(new QAction(tr("Reload"), this)),
+    m_contextMenu(new QMenu(this)),
+    m_queueAction(new QAction(tr("Queue"), this)),
+    m_downloadAction(new QAction(tr("Download"), this)),
+    m_shareAction(new QAction(tr("Copy URL"), this)),
     m_label(new QLabel(QString("<p align='center'; style='font-size: 40px; color: %1'>%2</p>")
-                              .arg(palette().color(QPalette::Mid).name()).arg(tr("No results")), this))
+                              .arg(palette().color(QPalette::Mid).name()).arg(tr("No tracks found")), this))
 {
     setWindowTitle(tr("Tracks"));
     setCentralWidget(new QWidget);
@@ -53,6 +57,10 @@ PluginTracksWindow::PluginTracksWindow(StackedWindow *parent) :
     m_view->setContextMenuPolicy(Qt::CustomContextMenu);
 
     m_reloadAction->setEnabled(false);
+    
+    m_contextMenu->addAction(m_queueAction);
+    m_contextMenu->addAction(m_downloadAction);
+    m_contextMenu->addAction(m_shareAction);
     
     m_label->hide();
     
@@ -71,6 +79,9 @@ PluginTracksWindow::PluginTracksWindow(StackedWindow *parent) :
     connect(m_view, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(showContextMenu(QPoint)));
     connect(m_delegate, SIGNAL(thumbnailClicked(QModelIndex)), this, SLOT(playTrack(QModelIndex)));
     connect(m_reloadAction, SIGNAL(triggered()), m_model, SLOT(reload()));
+    connect(m_queueAction, SIGNAL(triggered()), this, SLOT(queueTrack()));
+    connect(m_downloadAction, SIGNAL(triggered()), this, SLOT(downloadTrack()));
+    connect(m_shareAction, SIGNAL(triggered()), this, SLOT(shareTrack()));
 }
 
 PluginTracksWindow::~PluginTracksWindow() {
@@ -88,11 +99,13 @@ void PluginTracksWindow::search(const QString &service, const QString &query, co
     m_model->search(query, order);
 }
 
-void PluginTracksWindow::downloadTrack(const QModelIndex &index) {
+void PluginTracksWindow::downloadTrack() {
     if (isBusy()) {
         return;
     }
-        
+    
+    const QModelIndex index = m_view->currentIndex();
+    
     if (index.isValid()) {
         const QString id = index.data(PluginTrackModel::IdRole).toString();
         const QString title = index.data(PluginTrackModel::TitleRole).toString();
@@ -121,19 +134,19 @@ void PluginTracksWindow::playTrack(const QModelIndex &index) {
     }
 }
 
-void PluginTracksWindow::queueTrack(const QModelIndex &index) {
+void PluginTracksWindow::queueTrack() {
     if (isBusy()) {
         return;
     }
     
-    if (PluginTrack *track = m_model->get(index.row())) {
+    if (PluginTrack *track = m_model->get(m_view->currentIndex().row())) {
         AudioPlayer::instance()->addTrack(track);
         QMaemo5InformationBox::information(this, tr("'%1' added to playback queue").arg(track->title()));
     }
 }
 
-void PluginTracksWindow::shareTrack(const QModelIndex &index) {
-    if (const PluginTrack *track = m_model->get(index.row())) {
+void PluginTracksWindow::shareTrack() {
+    if (const PluginTrack *track = m_model->get(m_view->currentIndex().row())) {
         Clipboard::instance()->setText(track->url().toString());
         QMaemo5InformationBox::information(this, tr("URL copied to clipboard"));
     }
@@ -151,53 +164,9 @@ void PluginTracksWindow::showTrack(const QModelIndex &index) {
 }
 
 void PluginTracksWindow::showContextMenu(const QPoint &pos) {
-    if (isBusy()) {
-        return;
-    }
-    
-    const QModelIndex index = m_view->currentIndex();
-    
-    if (!index.isValid()) {
-        return;
-    }
-    
-    if (index.data(PluginTrackModel::DownloadableRole).toBool()) {
-        QMenu menu(this);
-        QAction *queueAction = menu.addAction(tr("Queue"));
-        QAction *downloadAction = menu.addAction(tr("Download"));
-        QAction *shareAction = menu.addAction(tr("Copy URL"));
-        QAction *action = menu.exec(pos);
-        
-        if (!action) {
-            return;
-        }
-        
-        if (action == queueAction) {
-            queueTrack(index);
-        }
-        else if (action == downloadAction) {
-            downloadTrack(index);
-        }
-        else if (action == shareAction) {
-            shareTrack(index);
-        }
-    }
-    else {
-        QMenu menu(this);
-        QAction *queueAction = menu.addAction(tr("Queue"));
-        QAction *shareAction = menu.addAction(tr("Copy URL"));
-        QAction *action = menu.exec(pos);
-        
-        if (!action) {
-            return;
-        }
-        
-        if (action == queueAction) {
-            queueTrack(index);
-        }
-        else if (action == shareAction) {
-            shareTrack(index);
-        }
+    if ((!isBusy()) && (m_view->currentIndex().isValid())) {
+        m_downloadAction->setEnabled(m_model->data(m_view->currentIndex(), PluginTrackModel::DownloadableRole).toBool());
+        m_contextMenu->popup(pos, m_queueAction);
     }
 }
 

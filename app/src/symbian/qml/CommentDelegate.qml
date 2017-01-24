@@ -38,7 +38,7 @@ Item {
         width: platformStyle.graphicSizeSmall
         height: platformStyle.graphicSizeSmall
         source: thumbnailUrl
-        placeholderSource: "images/artist.jpg"
+        placeholderSource: "images/artist.svg"
         enabled: artistId !== ""
         onClicked: root.activated();
     }

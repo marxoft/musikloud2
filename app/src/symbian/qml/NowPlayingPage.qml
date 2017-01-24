@@ -28,7 +28,7 @@ MyPage {
         BackToolButton {}
         
         MyToolButton {
-            iconSource: "images/repeat.png"
+            iconSource: "images/repeat.svg"
             toolTip: qsTr("Repeat")
             checkable: true
             checked: player.repeat
@@ -36,7 +36,7 @@ MyPage {
         }
         
         MyToolButton {
-            iconSource: "images/shuffle.png"
+            iconSource: "images/shuffle.svg"
             toolTip: qsTr("Shuffle")
             checkable: true
             checked: player.shuffle
@@ -61,7 +61,7 @@ MyPage {
         width: parent.width - platformStyle.paddingLarge * 4
         height: width
         source: player.metaData.largeThumbnailUrl
-        placeholderSource: "images/track-large.jpg"
+        placeholderSource: "images/music.svg"
         sourceSize.width: 360
         sourceSize.height: 360
         swipeEnabled: true
@@ -101,7 +101,7 @@ MyPage {
                 top: parent.top
             }
             minimumValue: 0
-            maximumValue: enabled ? player.duration : 1
+            maximumValue: Math.max(1, player.duration)
             enabled: player.seekable
             onEnabledChanged: if (!enabled) value = 0;
             onPressedChanged: if (!pressed) player.position = value;
@@ -216,7 +216,7 @@ MyPage {
         Button {
             id: previousButton
             
-            iconSource: privateStyle.imagePath("toolbar-mediacontrol-backwards")
+            iconSource: "images/previous.svg"
             onClicked: player.previous()
         }
         
@@ -231,7 +231,7 @@ MyPage {
         Button {
             id: nextButton
             
-            iconSource: privateStyle.imagePath("toolbar-mediacontrol-forward")
+            iconSource: "images/next.svg"
             onClicked: player.next()
         }
     }

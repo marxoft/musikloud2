@@ -23,15 +23,14 @@
 #include "pluginsettingsdialog.h"
 #include "settings.h"
 #include "valueselector.h"
-#include <QCheckBox>
-#include <QDialogButtonBox>
-#include <QFileDialog>
-#include <QHBoxLayout>
 #include <QLabel>
+#include <QCheckBox>
 #include <QMaemo5InformationBox>
 #include <QPushButton>
 #include <QScrollArea>
-#include <QSpinBox>
+#include <QDialogButtonBox>
+#include <QHBoxLayout>
+#include <QFileDialog>
 
 SettingsDialog::SettingsDialog(QWidget *parent) :
     Dialog(parent),
@@ -44,7 +43,6 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
     m_restoreQueueCheckBox(new QCheckBox(tr("Restore playback queue on startup"), this)),
     m_clipboardCheckBox(new QCheckBox(tr("Monitor clipboard for URLs"), this)),
     m_transfersCheckBox(new QCheckBox(tr("Start transfers automatically"), this)),
-    m_sleepTimerSpinBox(new QSpinBox(this)),
     m_categoriesButton(new QPushButton(tr("Categories"), this)),
     m_proxyButton(new QPushButton(tr("Network proxy"), this)),
     m_buttonBox(new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Vertical, this)),
@@ -62,29 +60,19 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
     m_restoreQueueCheckBox->setChecked(Settings::restorePlaybackQueueOnStartup());
     m_clipboardCheckBox->setChecked(Settings::clipboardMonitorEnabled());
     m_transfersCheckBox->setChecked(Settings::startTransfersAutomatically());
-    m_sleepTimerSpinBox->setRange(1, 1000);
-    m_sleepTimerSpinBox->setSuffix(tr(" minutes"));
-    m_sleepTimerSpinBox->setValue(Settings::sleepTimerDuration());
-    
-    const QString midColor = palette().color(QPalette::Mid).name();
     
     QWidget *scrollWidget = new QWidget(m_scrollArea);
     QVBoxLayout *vbox = new QVBoxLayout(scrollWidget);
-    vbox->addWidget(new QLabel(QString("<p style='color: %1'>%2</p>").arg(midColor).arg(tr("Media/content")), this),
-                    0, Qt::AlignHCenter);
+    vbox->addWidget(new QLabel(tr("Media/content"), this));
     vbox->addWidget(m_downloadPathSelector);
-    vbox->addWidget(m_clipboardCheckBox);
     vbox->addWidget(m_restoreQueueCheckBox);
-    vbox->addWidget(new QLabel(tr("Sleep timer duration"), this));
-    vbox->addWidget(m_sleepTimerSpinBox);
-    vbox->addWidget(new QLabel(QString("<p style='color: %1'>%2</p>").arg(midColor).arg(tr("Transfers")), this),
-                    0, Qt::AlignHCenter);
+    vbox->addWidget(m_clipboardCheckBox);
+    vbox->addWidget(new QLabel(tr("Transfers"), this));
     vbox->addWidget(m_transfersCheckBox);
     vbox->addWidget(m_transfersSelector);
     vbox->addWidget(m_proxyButton);
     vbox->addWidget(m_categoriesButton);
-    vbox->addWidget(new QLabel(QString("<p style='color: %1'>%2</p>").arg(midColor).arg(tr("Plugins")), this),
-                    0, Qt::AlignHCenter);
+    vbox->addWidget(new QLabel(tr("Plugins"), this));
     vbox->addWidget(m_pluginView);
     vbox->setContentsMargins(0, 0, 0, 0);
     m_scrollArea->setWidget(scrollWidget);
@@ -100,8 +88,6 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
             Settings::instance(), SLOT(setClipboardMonitorEnabled(bool)));
     connect(m_transfersCheckBox, SIGNAL(toggled(bool)),
             Settings::instance(), SLOT(setStartTransfersAutomatically(bool)));
-    connect(m_sleepTimerSpinBox, SIGNAL(valueChanged(int)),
-            Settings::instance(), SLOT(setSleepTimerDuration(int)));
     connect(m_proxyButton, SIGNAL(clicked()), this, SLOT(showNetworkProxyDialog()));
     connect(m_categoriesButton, SIGNAL(clicked()), this, SLOT(showCategoriesDialog()));
     connect(m_pluginView, SIGNAL(activated(QModelIndex)), this, SLOT(showPluginDialog(QModelIndex)));

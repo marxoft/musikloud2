@@ -26,6 +26,7 @@ class NowPlayingAction;
 class ListView;
 class QLabel;
 class QVBoxLayout;
+class QMenu;
 
 class SoundCloudTracksWindow : public StackedWindow
 {
@@ -39,11 +40,11 @@ public Q_SLOTS:
     void get(const QString &resourcePath, const QVariantMap &filters = QVariantMap());
     
 private Q_SLOTS:    
-    void downloadTrack(const QModelIndex &index);
+    void downloadTrack();
     void playTrack(const QModelIndex &index);
-    void queueTrack(const QModelIndex &index);
-    void setTrackFavourite(const QModelIndex &index);
-    void shareTrack(const QModelIndex &index);
+    void queueTrack();
+    void setTrackFavourite();
+    void shareTrack();
     void showTrack(const QModelIndex &index);
     
     void showContextMenu(const QPoint &pos);
@@ -60,6 +61,11 @@ private:
     ListView *m_view;
     TrackDelegate *m_delegate;
     QAction *m_reloadAction;
+    QMenu *m_contextMenu;
+    QAction *m_queueAction;
+    QAction *m_downloadAction;
+    QAction *m_shareAction;
+    QAction *m_favouriteAction;
     QLabel *m_label;
     QVBoxLayout *m_layout;
 };

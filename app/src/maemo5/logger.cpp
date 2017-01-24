@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Stuart Howarth <showarth@marxoft.co.uk>
+ * Copyright (C) 2017 Stuart Howarth <showarth@marxoft.co.uk>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -17,9 +17,10 @@
 
 #include "logger.h"
 #include <QDateTime>
+#include <QDebug>
+#include <QDir>
 #include <QFile>
 #include <QTextStream>
-#include <iostream>
 
 QString Logger::fn;
 int Logger::vb = 0;
@@ -78,18 +79,20 @@ void Logger::log(const QString &message, int minimumVerbosity) {
         QString output = QString("%1: %2\n").arg(date).arg(message);
         
         if (!fn.isEmpty()) {
-            QFile file(fn);
-            
-            if (file.open(QFile::Append | QFile::Text)) {
-                QTextStream stream(&file);
-                stream << output;
-                file.close();
-                return;
+            if (QDir().mkpath(fn.left(fn.lastIndexOf("/")))) {
+                QFile file(fn);
+
+                if (file.open(QFile::Append | QFile::Text)) {
+                    QTextStream stream(&file);
+                    stream << output;
+                    file.close();
+                    return;
+                }
             }
             
-            output = tr("%1: Cannot write to log file '%2'. Error: %3").arg(date).arg(fn).arg(file.errorString());
+            output = tr("%1: Cannot write to log file '%2'").arg(date).arg(fn);
         }
         
-        std::cout << output.toUtf8().constData();
+        qDebug() << output.toUtf8().constData();
     }
 }

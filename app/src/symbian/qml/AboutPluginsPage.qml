@@ -21,7 +21,7 @@ import MusiKloud 2.0
 MyPage {
     id: root
 
-    title: qsTr("Services")
+    title: qsTr("Plugins")
     tools: ToolBarLayout {
         BackToolButton {}
     }

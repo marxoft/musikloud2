@@ -22,7 +22,7 @@ MyToolButton {
 
     property Item pageToDestroy: null
 
-    iconSource: appWindow.pageStack.depth > 1 ? "toolbar-back" : "images/close.png"
+    iconSource: appWindow.pageStack.depth > 1 ? "toolbar-back" : "images/close.svg"
     toolTip: appWindow.pageStack.depth > 1 ? qsTr("Back") : qsTr("Exit")
     onClicked: {
         if (appWindow.pageStack.depth > 1) {
