@@ -23,7 +23,6 @@ Item {
     property alias text: title.text
     property alias checked: switcher.checked
     property alias pressed: switcher.pressed
-    property bool platformInverted: false
 
     width: parent.width
     height: Math.max(title.height, switcher.height)
@@ -40,8 +39,7 @@ Item {
         radius: 5
         border {
             width: 1
-            color: root.platformInverted ? platformStyle.colorDisabledLightInverted
-                                                   : platformStyle.colorDisabledMid
+            color: platformStyle.colorDisabledMid
         }
     }
 
@@ -54,8 +52,6 @@ Item {
             rightMargin: platformStyle.paddingSmall
             verticalCenter: parent.verticalCenter
         }
-
-        platformInverted: root.platformInverted
         verticalAlignment: Text.AlignVCenter
         maximumLineCount: 2
         elide: Text.ElideRight

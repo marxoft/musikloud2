@@ -30,8 +30,7 @@ Button {
         radius: 5
         border {
             width: 1
-            color: root.platformInverted ? platformStyle.colorDisabledLightInverted
-                                                   : platformStyle.colorDisabledMid
+            color: platformStyle.colorDisabledMid
         }
     }
 }
